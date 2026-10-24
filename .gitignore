@@ -1,7 +1,4 @@
-# The working files of the author: the task plan and the coding conventions.
-# The design documents next to them are part of the repository.
-/docs/IMPLEMENTATION_PLAN.md
-/docs/CODING_STANDARDS.md
+/docs
 
 # Python
 __pycache__/
