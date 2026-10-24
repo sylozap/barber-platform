@@ -1,28 +1,40 @@
 # Barber Platform
 
+[![ci](https://github.com/sylozap/barber-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/sylozap/barber-platform/actions/workflows/ci.yml)
+![Python 3.12](https://img.shields.io/badge/python-3.12-blue)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 Микросервисная платформа онлайн-записи клиентов к парикмахерам. Клиент находит
 салон и мастера, видит свободное время и записывается; салон ведёт графики
 мастеров, услуги и цены; платформа подтверждает запись, напоминает о визите
-и сообщает об отмене. Учебный проект, доведённый до рабочего состояния: пять
-сервисов, Kubernetes, наблюдаемость, нагрузка и эксперименты на отказ.
+и сообщает об отмене.
 
 **Стек:** Python 3.12, FastAPI, SQLAlchemy 2.x (async), PostgreSQL, Redis, Kafka,
 Kubernetes (kind, Helm), OpenTelemetry, Prometheus, Grafana, Tempo, Loki, k6.
 
+**Коротко о проекте:**
+
+- 5 сервисов, своя база у каждого, события через Kafka и transactional outbox;
+- двойная бронь невозможна: занятость мастера охраняет `EXCLUDE`-ограничение PostgreSQL;
+- около 1400 тестов: unit, интеграционные на настоящих PostgreSQL/Redis/Kafka
+  (testcontainers), контрактные (schemathesis), тесты Helm-чартов и алертов;
+- Kubernetes одной командой: Helm-чарт, HPA, PDB, graceful shutdown, миграции Job'ом;
+- метрики, трейсы и логи в одной Grafana, алерты с юнит-тестами;
+- нагрузка k6 50 RPS с p95 до 40 мс и эксперименты на отказ под нагрузкой без ошибок у клиента.
+
 ## Архитектура
 
-Пять сервисов на FastAPI, у каждого своя база в общем PostgreSQL, и ни один не
-читает чужую. Снаружи виден только `api-gateway`: он проверяет JWT, держит
-лимиты запросов, собирает карточку мастера из двух сервисов и отдаёт сводный
-OpenAPI. `auth` выпускает токены и публикует JWKS, по которому каждый сервис
-проверяет подпись сам. `catalog` — салоны, мастера, услуги и цены. `booking` —
-графики, свободные слоты и брони: занятость мастера охраняет
-ограничение `EXCLUDE` в PostgreSQL, а не кэш и не блокировка. `notification`
-отправляет письма и сообщения в Telegram. Изменения сервисы публикуют в Kafka
-через transactional outbox, потребители дедуплицируют сообщения; синхронных
-вызовов между сервисами два — `booking` берёт снимок услуги у `catalog`
-и сервисный токен у `auth`. Redis — только кэш и лимиты: без него платформа
-медленнее, но не ошибается.
+Снаружи виден только `api-gateway`: он проверяет JWT, держит лимиты запросов,
+собирает карточку мастера из двух сервисов и отдаёт сводный OpenAPI. `auth`
+выпускает токены и публикует JWKS, по которому каждый сервис проверяет подпись
+сам. `catalog` — салоны, мастера, услуги и цены. `booking` — графики, свободные
+слоты и брони. `notification` отправляет письма и сообщения в Telegram.
+
+У каждого сервиса своя база в общем PostgreSQL, и ни один не читает чужую.
+Изменения сервисы публикуют в Kafka через transactional outbox, потребители
+дедуплицируют сообщения. Синхронных вызовов между сервисами два: `booking`
+берёт снимок услуги у `catalog` и сервисный токен у `auth`. Redis — только кэш
+и лимиты: без него платформа медленнее, но не ошибается.
 
 ```mermaid
 flowchart LR
@@ -42,8 +54,97 @@ flowchart LR
   gw & catalog & booking --> redis[("Redis<br/>кэш, лимиты")]
 ```
 
-Подробно — в [документации](docs/README.md): карта сервисов, контракты API,
-модель данных, события, гарантии согласованности и 18 ADR.
+| Сервис | Отвечает за | Публикует | Читает |
+|---|---|---|---|
+| `api-gateway` | вход, JWT, rate limiting, карточка мастера, сводный OpenAPI | — | — |
+| `auth` | регистрация, вход, refresh-токены, роли, JWKS, сервисные токены | `auth.users.v1` | — |
+| `catalog` | салоны, мастера, услуги, цены мастеров | `catalog.masters.v1`, `catalog.services.v1` | — |
+| `booking` | графики, свободные слоты, брони, напоминания | `booking.bookings.v1`, `booking.reminders.v1` | `catalog.*` |
+| `notification` | email и Telegram, настройки уведомлений, DLQ | `*.dlq` | `auth.users.v1`, `booking.*` |
+
+## Ключевые решения
+
+- **Границы сервисов проведены по транзакционной согласованности.** Всё, что
+  меняется атомарно, живёт в одном сервисе: графики и брони — в `booking`, а не
+  в двух сервисах. Поэтому ни одна операция не пересекает границу сервиса
+  транзакционно, и саги не нужны.
+- **Единственный арбитр занятости — база.** `EXCLUDE USING gist (master_id WITH =,
+  occupied_range WITH &&) WHERE status IN (...)`. Ни кэш, ни распределённая
+  блокировка, ни проверка в коде не решают, свободно ли время. Проигравший гонку
+  получает `409 slot_taken` и список ближайших свободных слотов.
+- **Transactional outbox и свой relay.** Строка, событие и ключ идемпотентности
+  пишутся в одной транзакции; relay забирает пачку `FOR UPDATE SKIP LOCKED`.
+  Доставка at-least-once, потребители дедуплицируют через `processed_events`
+  в транзакции обработчика.
+- **JSON-события с Pydantic-схемами в общей библиотеке** вместо Avro и Schema
+  Registry: несовпадение схемы ловит mypy у продюсера и консьюмера. Топик на
+  агрегат, ключ — id агрегата, поэтому события одной брони идут по порядку.
+- **JWT проверяется дважды**: на гейтвее и в каждом сервисе по JWKS. Сервис
+  не доверяет заголовкам гейтвея и продолжает работать при недоступном `auth`
+  на закэшированных ключах.
+- **Снимок услуги в брони.** Название, цена, длительность и дедлайн отмены
+  копируются в бронь при создании, поэтому смена прайса не переписывает
+  историю, а отмена работает без `catalog`.
+- **Напоминания планируются в базе**, а не в Kafka или Redis: раз в минуту
+  проход берёт наступившие напоминания `SKIP LOCKED` и пишет событие в outbox
+  в той же транзакции, где ставит отметку об отправке.
+- **Свои `auth` и `api-gateway` вместо Keycloak и готового gateway** — ради
+  понимания механики: ротация refresh-токенов, JWKS, sliding window на Lua.
+- **HTTP между сервисами** с таймаутами, ретраями только для идемпотентных
+  методов и circuit breaker; gRPC при двух синхронных вызовах не окупается.
+
+## Интересные задачи
+
+**Двадцать клиентов, один слот.** Интеграционный тест запускает 20 одновременных
+записей на одно время: ровно одна успешна, остальные получают `409 slot_taken`.
+Свободные слоты считаются одним SQL-запросом: развёртка недельного шаблона
+в UTC с учётом перехода на летнее время, вычитание перерывов и броней. Эталонная
+реализация на Python сверяется с SQL в тестах.
+
+**Гонка при ротации refresh-токена.** Два запроса с одним refresh-токеном не
+должны дать две живые пары. Ротация идёт под `SELECT ... FOR UPDATE`, а повторное
+использование уже обменянного токена отзывает всё семейство: так украденный
+токен перестаёт работать у обоих.
+
+**Outbox, когда брокер лежит.** Kafka-клиент висит в отправке без дедлайна, и
+метрика, которую выставляет проход relay, застывала на нуле ровно тогда, когда
+outbox рос. Размер outbox теперь меряет отдельный цикл, а трейс продолжается
+через Kafka: `traceparent` записи хранится в строке outbox, и консьюмер
+продолжает трейс исходного HTTP-запроса.
+
+**Redis отключён под нагрузкой.** Первый эксперимент дал 56 % ошибок: подключение
+к Service без эндпоинтов не отвергается, а висит до таймаута, и каждая операция
+с кэшем ждала свои 200 мс. Circuit breaker к Redis снизил долю ошибок до 14 %.
+Остаток объяснился тем, что без кэша `catalog` упирался в CPU, и HPA для него
+довёл её до 0 %. Платформа без Redis теперь только медленнее: p95 46 мс вместо 23.
+
+**Rate limiter без ступеньки на границе минуты.** Sliding window counter: два
+счётчика на клиента, оценка `previous * (window - elapsed) / window + current`,
+проверка и инкремент — один Lua-скрипт, чтобы две реплики гейтвея не пропустили
+лишний запрос. Если Redis недоступен, лимитер пропускает трафик.
+
+**Rolling update без единого 502.** `preStop`-пауза, пока под уходит из
+эндпоинтов, потом uvicorn дожидается запросов в полёте, потом сервис
+останавливает консьюмеры и воркеры. `terminationGracePeriodSeconds` чарт
+считает из этих фаз.
+
+## Нагрузка и отказы
+
+kind на одной машине (Ryzen 5 5500U, 14 ГБ), наблюдаемость включена, k6 через
+Ingress, 50 RPS: 80 % поиск слотов, 15 % карточка мастера, 5 % запись.
+
+| Метрика | SLO | Результат |
+|---|---|---|
+| Доля ошибок | < 1 % | 0 % (0 из 18 527) |
+| p95 поиска свободных слотов | < 1 с | 21–32 мс |
+| p95 создания брони | < 500 мс | 26–39 мс |
+
+| Эксперимент под нагрузкой | Ошибок у клиента |
+|---|---|
+| Удаление пода `booking` и `api-gateway` | 0 из 16 805 |
+| Rolling update через `helm upgrade` | 0 из 16 772, ни одного `502` |
+| Kafka остановлена на 5 минут | 0 из 34 910; 395 броней → 395 уведомлений, без дублей |
+| Redis остановлен на 4 минуты | 0 из 22 571 (после двух исправлений, см. выше) |
 
 ## Что нужно
 
@@ -54,18 +155,9 @@ flowchart LR
 | `make`, `curl`, `jq` | команды проекта и примеры ниже | — |
 | [kind](https://kind.sigs.k8s.io/), `kubectl`, `helm` | только для Kubernetes | kind 0.32, kubectl 1.36, helm 3.19 (в CI 3.22) |
 
-Память и время, честно:
-
-| Что | Память | Первый запуск | Повторный |
-|---|---|---|---|
-| Compose-стенд (`make up`) | ~1,1 ГБ | ~1 мин: сборка пяти образов ~40 с, плюс скачивание базовых | ~15 с |
-| Compose + наблюдаемость (`make obs-up`) | плюс до 2,2 ГБ (сумма `mem_limit` профиля) | плюс скачивание шести образов | ~15 с |
-| kind (`make kind-up`) | узел около 3,7 ГБ | меньше, чем с наблюдаемостью | — |
-| kind с наблюдаемостью (`OBSERVABILITY=1`) | узел 4,7–4,9 ГБ | ~28 мин на пустом кэше | ~14 мин |
-
-Комфортно — от 16 ГБ памяти на машине; на 8 ГБ — compose-стенд или kind без
-наблюдаемости. Почти всё время первого `make kind-up` уходит на скачивание
-образов внутрь узла и `kind load`.
+Compose-стенд занимает около 1,1 ГБ памяти и поднимается за минуту; профиль
+наблюдаемости добавляет до 2,2 ГБ. Узел kind — 3,7 ГБ, с наблюдаемостью 4,9 ГБ.
+Комфортно — от 16 ГБ на машине; на 8 ГБ — compose-стенд или kind без наблюдаемости.
 
 ## Быстрый старт: compose
 
@@ -73,12 +165,7 @@ flowchart LR
 make sync    # окружение из lock-файла
 make up      # PostgreSQL, Redis, Kafka, миграции и пять сервисов
 make seed    # демо-данные через API: 3 салона, 12 мастеров, 100 клиентов, брони
-```
-
-Проверка:
-
-```bash
-curl localhost:8000/health/ready     # api-gateway
+curl localhost:8000/health/ready
 ```
 
 Swagger UI сводного OpenAPI всех сервисов — http://localhost:8000/docs.
@@ -86,13 +173,8 @@ Swagger UI сводного OpenAPI всех сервисов — http://localho
 Сервисы слушают и напрямую: api-gateway `8000`, auth `8001`, catalog `8002`,
 booking `8003`, notification `8004`; PostgreSQL `5432`, Redis `6379`,
 Kafka `9092`. Исходники смонтированы в контейнеры — правка файла перезапускает
-сервис без пересборки образа. Миграции применяются одноразовыми контейнерами
-`<service>-migrate` при подъёме; вручную — `make migrate`.
-
-```bash
-make logs    # логи стенда
-make down    # остановить и удалить тома: следующий make up начнёт с пустых баз
-```
+сервис без пересборки образа. `make logs` — логи, `make down` — остановить
+и удалить тома.
 
 Администратор стенда — `admin@barber.example` / `admin-local-password-1`
 (`super_admin`, задан в `deploy/compose/docker-compose.yml`). Демо-клиенты seed
@@ -103,7 +185,8 @@ make down    # остановить и удалить тома: следующи
 
 Весь путь клиента через gateway: регистрация, подтверждение почты, вход, поиск
 слота, запись, отмена. Писем платформа локально не отправляет — `notification`
-пишет их в свой лог, оттуда же берётся токен подтверждения.
+пишет их в свой лог, оттуда же берётся токен подтверждения. Те же запросы для
+расширения VS Code REST Client — в [requests.http](requests.http).
 
 ```bash
 API=http://localhost:8000/api/v1
@@ -177,28 +260,16 @@ curl --resolve barber.local:80:127.0.0.1 http://barber.local/api/v1/salons
 kubectl get secret auth-env -n barber -o jsonpath='{.data.BOOTSTRAP_ADMIN_PASSWORD}' | base64 -d
 ```
 
-Повторный `make kind-up` безопасен: недостающее создаётся, существующее
-остаётся, пересобранные образы выкатываются. Секреты генерируются прямо
-в кластер (`scripts/gen_secrets.sh`), в файлы не пишутся. Демо-данные — Job
-`api-gateway-seed` (`scripts/seed.py`). Сервисы `api-gateway`, `booking`
-и `catalog` держат по два пода и масштабируются HPA до трёх.
-
-**Прогон 03.10.2026** (WSL2, 12 ядер, 16 ГБ для WSL, Docker 29, kind 0.33,
-Kubernetes 1.37, `OBSERVABILITY=1`):
-
-| | Время |
-|---|---|
-| С нуля, на пустом кэше образов в узле | 28 мин 20 с |
-| из них: кластер · Traefik и metrics-server · сборка и загрузка образов | 1 мин 15 с · 1 мин 45 с · 6 мин 20 с |
-| из них: секреты и infra · наблюдаемость · пять сервисов и seed | 6 мин · 8 мин 20 с · 4 мин 40 с |
-| Повторный запуск на живом кластере | 13 мин 40 с |
-
-Узел `kind` со всеми тремя namespace после seed занимает 4,7 ГБ памяти;
-без `OBSERVABILITY=1` — примерно на 1 ГБ меньше.
+Первый запуск с наблюдаемостью на пустом кэше занимает около 28 минут, почти всё
+время — скачивание образов в узел и `kind load`; повторный — около 14 минут.
+Повторный `make kind-up` безопасен: недостающее создаётся, пересобранные образы
+выкатываются. Секреты генерируются прямо в кластер (`scripts/gen_secrets.sh`)
+и в файлы не пишутся. `api-gateway`, `booking` и `catalog` держат по два пода
+и масштабируются HPA до трёх.
 
 **Известное ограничение:** etcd узла держит данные в памяти (на диске WSL
 записи шли по 150–450 мс, и control plane перезапускался). После перезапуска
-Docker кластер не поднимется — пересоздайте его: `make kind-down kind-up`.
+Docker кластер нужно пересоздать: `make kind-down kind-up`.
 
 ## Тесты
 
@@ -210,9 +281,8 @@ make test-unit # только те, которым Docker не нужен
 ```
 
 Интеграционные тесты поднимают настоящие PostgreSQL, Redis и Kafka через
-`testcontainers`; без Docker они пропускаются. Среди них — тест гонки: двадцать
-одновременных записей на один слот, ровно одна успешна. Ещё три проверки,
-которые CI гоняет отдельными job'ами:
+`testcontainers`; без Docker они пропускаются. Ещё три проверки CI гоняет
+отдельными job'ами:
 
 ```bash
 uv run pytest -m fuzz tests/contract/test_schemathesis.py  # schemathesis через gateway по сводному OpenAPI
@@ -220,31 +290,25 @@ make alerts-check   # правила алертов, их юнит-тесты и
 make helm-check     # helm lint и kubeconform по всем сервисам (нужны helm и kubeconform)
 ```
 
-`make check` прогоняет хуки pre-commit по всему репозиторию; `make hooks`
+`make check` прогоняет хуки pre-commit по всему репозиторию, `make hooks`
 ставит их в клон. Полный список команд — `make help`.
 
-## Нагрузка
+## Нагрузочный тест
 
 ```bash
 make kind-up OBSERVABILITY=1   # без метрик не будет графиков HPA и p95 по сервисам
 make loadtest                  # 7 минут: разгон до 50 RPS и удержание; падает, если нарушен SLO
 ```
 
-Сценарий — [loadtest/k6/booking_flow.js](loadtest/k6/booking_flow.js): 80 % поиск
-слотов, 15 % карточка мастера, 5 % запись. k6 запускается из образа, клиентов
-сценария `make loadtest` регистрирует сам. Профиль меняется переменными:
+Сценарий — [loadtest/k6/booking_flow.js](loadtest/k6/booking_flow.js), клиентов
+для него `make loadtest` регистрирует сам. Профиль меняется переменными:
 `make loadtest RATE=20 HOLD=1m`. Брони настоящие, и прогон расходует слоты:
 после одного-двух прогонов сдвиньте окно — `make loadtest DAYS_AHEAD=28`.
 Подробности — [loadtest/k6/README.md](loadtest/k6/README.md).
 
-Результаты на 50 RPS: 0 % ошибок, p95 поиска слотов 21–32 мс, p95 записи
-26–39 мс при SLO 1 с и 500 мс — [docs/15-load-test-results.md](docs/15-load-test-results.md).
-Падение пода, rolling update, остановка Kafka и Redis под нагрузкой прошли
-без единой ошибки у клиента — [docs/16-failure-drills.md](docs/16-failure-drills.md).
-
 ## Наблюдаемость
 
-Дашборды Grafana — **System overview** (RPS, доля 5xx, p95 по сервисам), **Async**
+Дашборды Grafana: **System overview** (RPS, доля 5xx, p95 по сервисам), **Async**
 (outbox, лаг консьюмеров, DLQ, планировщики) и **Business** (брони, отмены и неявки,
 конфликты за слот, загрузка мастеров, уведомления). Вход без логина.
 
@@ -254,59 +318,40 @@ make loadtest                  # 7 минут: разгон до 50 RPS и уд�
 | Prometheus | http://localhost:9090 | `kubectl port-forward -n observability svc/monitoring-prometheus 9090` |
 | Alertmanager | http://localhost:9093 | `kubectl port-forward -n observability svc/monitoring-alertmanager 9093` |
 | Tempo API | http://localhost:3200 | в Grafana: Explore → Tempo |
-| Alloy, граф сбора логов | http://localhost:12345 | — |
 
-`make obs-down` убирает профиль, сервисы остаются и перезапускаются без
-трейсинга. Дашборды — `deploy/observability/dashboards/`, алерты —
-`deploy/observability/alerts/` и `deploy/observability/alertmanager.yaml`; они общие
-для compose и кластера, в Grafana правятся только через git.
+Дашборды — `deploy/observability/dashboards/`, алерты —
+`deploy/observability/alerts/`; они общие для compose и кластера и правятся
+только через git.
 
-**Ручная проверка после `make obs-up`:**
+Как проверить после `make obs-up` и `make seed`:
 
-1. Prometheus → Status → Targets: пять целей `UP`.
-2. Grafana → Connections → Data sources: Prometheus, Tempo, Loki, Alertmanager.
-3. Трафик: `make seed` и сценарий из «Попробовать API». Дашборды
-   System overview и Business показывают данные, Async — прошедшие через
-   outbox события.
-4. Grafana → Explore → Tempo, запрос
-   `{ resource.service.name = "notification" && name =~ "consume.*" }`:
-   трейс начинается с `POST /api/v1/auth/register` в `auth`, внутри —
-   `create auth.users.v1` и под ним `consume auth.users.v1` в `notification`.
-   Span `publish auth.users.v1` relay лежит отдельным трейсом со ссылкой
-   на `create` — так задумано, см. [docs/11-observability.md](docs/11-observability.md#трассировка).
-5. Логи трейса: у span'а из шага 4 кнопка **Logs for this span** открывает
-   записи Loki всего трейса из всех сервисов. Обратно: в записи Loki поле
-   `trace_id` → **Open the trace**. Метки Loki — только `service`, `env`,
-   `level`; `trace_id` — structured metadata, `correlation_id` и `user_id` —
-   поля записи.
-6. Алерт на DLQ: «ядовитое» сообщение в топик, который читает `notification`,
+1. **Трейс через Kafka.** Grafana → Explore → Tempo,
+   `{ resource.service.name = "notification" && name =~ "consume.*" }`: трейс
+   начинается с `POST /api/v1/auth/register` в `auth`, внутри — `create auth.users.v1`
+   и под ним `consume auth.users.v1` в `notification`. Span `publish` relay — отдельный
+   трейс со ссылкой на `create`: relay публикует пачкой, вне запроса.
+   Кнопка **Logs for this span** открывает логи всего трейса из всех сервисов.
+2. **Алерт на DLQ.** Отправьте «ядовитое» сообщение — в течение минуты
+   Alertmanager покажет `DeadLetters` с `reason=invalid_message`:
 
    ```bash
    echo '{ not json' | docker compose -f deploy/compose/docker-compose.yml exec -T kafka \
      kafka-console-producer --bootstrap-server localhost:9092 --topic booking.bookings.v1
    ```
 
-   В течение минуты Alertmanager (http://localhost:9093) показывает
-   `DeadLetters` с `reason=invalid_message`, дашборд Async — сообщение в DLQ.
-7. Алерт на вставший outbox: `docker compose -f deploy/compose/docker-compose.yml stop kafka`,
-   затем запись, которая пишет событие (регистрация из «Попробовать API»).
-   На дашборде Async «Waiting in the outbox» растёт в течение 5 с, через
-   ~4,5 минуты срабатывает `OutboxNotDraining`. После `... start kafka` outbox
-   пустеет и алерт гаснет.
+3. **Алерт на вставший outbox.** `docker compose -f deploy/compose/docker-compose.yml stop kafka`
+   и регистрация пользователя: на дашборде Async растёт «Waiting in the outbox»,
+   через ~4,5 минуты срабатывает `OutboxNotDraining`. После `start kafka` outbox
+   пустеет, алерт гаснет.
 
 ## Конфигурация
 
 Все настройки — переменные окружения, читаются через `pydantic-settings`.
 Полный перечень с описанием — в [.env.example](.env.example). Compose-стенд
-и kind задают их сами; `.env` нужен, только если запускать сервис вне
-контейнера:
+и kind задают их сами; `.env` (`cp .env.example .env`) нужен, только если
+запускать сервис вне контейнера. У секретов, адреса базы, Redis и брокера
+значений по умолчанию нет: сервис падает на старте, если переменная не задана.
 
-```bash
-cp .env.example .env
-```
-
-У секретов, адреса базы, Redis и брокера значений по умолчанию нет: сервис
-падает на старте, если переменная не задана. Файл `.env` в git не попадает.
 Чтобы `notification` слал сообщения в Telegram, а не в лог, задайте
 `TELEGRAM_BOT_TOKEN` и `TELEGRAM_BOT_USERNAME`. В kind токен `make kind-up`
 берёт из окружения и кладёт в Secret, имя бота — в
@@ -315,7 +360,7 @@ cp .env.example .env
 ## Структура
 
 ```
-libs/common/          # шасси barber_common: конфиг, логи, ошибки, БД, Kafka, outbox, auth, health
+libs/common/          # общая библиотека barber_common: конфиг, логи, ошибки, БД, Kafka, outbox, auth, health
 services/             # api-gateway, auth, catalog, booking, notification
 deploy/compose/       # локальный стенд и профиль наблюдаемости
 deploy/helm/          # чарт сервиса, чарт infra, чарт наблюдаемости, values по сервисам
@@ -324,19 +369,8 @@ deploy/observability/ # дашборды и алерты, общие для comp
 loadtest/k6/          # нагрузочный сценарий
 scripts/              # подъём kind, секреты, топики, миграции, seed
 tests/                # контрактные, e2e и deploy-тесты всей платформы
-docs/                 # проектная документация и ADR
 ```
 
-## Документация
+## Лицензия
 
-| | |
-|---|---|
-| [docs/README.md](docs/README.md) | оглавление и три решения, определяющие систему |
-| [docs/03-services.md](docs/03-services.md) | карта сервисов и владение данными |
-| [docs/04-api-contracts.md](docs/04-api-contracts.md) | эндпоинты, ошибки, аутентификация |
-| [docs/05-data-model.md](docs/05-data-model.md) | таблицы и главный инвариант |
-| [docs/07-events-and-kafka.md](docs/07-events-and-kafka.md) | топики, события, доставка, DLQ |
-| [docs/10-infrastructure.md](docs/10-infrastructure.md) | compose, Helm, Kubernetes, CI |
-| [docs/11-observability.md](docs/11-observability.md) | метрики, трейсы, логи, алерты |
-| [docs/17-design-vs-reality.md](docs/17-design-vs-reality.md) | что разошлось с проектом и почему |
-| [docs/adr/](docs/adr/README.md) | 18 архитектурных решений |
+[MIT](LICENSE)
