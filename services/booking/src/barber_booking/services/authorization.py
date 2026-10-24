@@ -1,11 +1,5 @@
-"""Who may manage a master's schedule, and in what capacity a caller acts on a booking.
-
-A schedule: a ``super_admin`` anywhere, a ``salon_admin`` of the master's
-salon, and the master themselves. Every refusal is the same ``403``, whatever
-its reason.
-
-A booking: the token says which roles the caller holds, and the booking says
-whose it is. What each capacity may do is the domain's rule, not this module's.
+"""Authorization rules for schedule management and acting on bookings. All refusals are
+``403``.
 """
 
 from __future__ import annotations

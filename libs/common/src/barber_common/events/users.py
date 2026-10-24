@@ -1,9 +1,4 @@
-"""Payloads of ``auth.users.v1``.
-
-Shared by ``auth``, which writes them, and ``notification``, which reads them.
-The topic carries the account lifecycle, from which ``notification`` keeps its
-own table of recipients.
-"""
+"""Payloads of ``auth.users.v1``, consumed by ``notification`` to keep its recipients."""
 
 from __future__ import annotations
 

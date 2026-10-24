@@ -1,27 +1,8 @@
-"""How often a caller may knock: a sliding window counter in Redis.
+"""Sliding window rate limiter in Redis.
 
-Per window and per caller, Redis holds one counter. The estimate of the last
-``window`` seconds weighs the previous window's counter by the share of it
-that still falls inside the sliding window, and adds the current one::
-
-    estimate = previous * (window - elapsed) / window + current
-
-Two integers per caller rather than a log of every request, and no reset at the
-boundary of a minute: thirty requests at 12:00:59 still count at 12:01:00. The
-price is an estimate that assumes the previous window's requests were spread
-evenly, which is the usual trade. Reading both counters and adding to the current one is one Lua
-script, so two gateway replicas cannot both let the last request through.
-
-The clock is the gateway's, passed to the script, rather than Redis's ``TIME``:
-replicas are a few milliseconds apart at most, and a test can move it.
-
-**Redis being down lets the traffic through.** A limiter that cannot count
-does not refuse: on this platform availability matters more than protection
-from a burst -- a stand without Redis is slower, not closed. The failure is a
-``WARNING`` in the log, at most once per ``_FAILURE_LOG_INTERVAL_SECONDS``, so
-an outage of Redis does not turn into a flood of identical records. A circuit
-breaker, the one the cache uses, stops asking a Redis that keeps failing:
-otherwise every request of an outage would wait out the timeout first.
+Two counters per caller: ``estimate = previous * (window - elapsed) / window + current``.
+The check and increment run in one Lua script. If Redis is down, requests are allowed and a
+circuit breaker stops calling it.
 """
 
 from __future__ import annotations
@@ -111,15 +92,7 @@ def sliding_estimate(*, previous: int, current: int, elapsed_ms: int, window_ms:
 def retry_after_seconds(
     *, limit: int, previous: int, current: int, elapsed_ms: int, window_ms: int
 ) -> int:
-    """How long until one more request fits under the limit, in whole seconds.
-
-    Assumes nobody else asks in the meantime, which is what ``Retry-After``
-    can promise at best. Two cases. If the current window still has room, the
-    wait is until enough of the previous window has slid out. If it is full,
-    the wait runs into the next window, where the current counter becomes the
-    one sliding out. Never less than a second: ``Retry-After: 0`` invites an
-    immediate retry that is refused again.
-    """
+    """Seconds until one more request fits under the limit (at least 1)."""
     room = limit - 1
     remaining_ms = window_ms - elapsed_ms
 
@@ -222,7 +195,7 @@ class RateLimitPolicy:
     Every request counts against the general limit of its caller: the user
     when the token checked out, the address otherwise. Two kinds of request
     count against a strict limit on top of it, because each one costs more
-    than a read -- a booking holds a slot, a registration sends a letter.
+    than a read: a booking holds a slot, a registration sends a letter.
     """
 
     anonymous: Limit
@@ -246,14 +219,9 @@ class RateLimitPolicy:
 
 
 def client_address(request: Request, *, trusted_proxy_hops: int) -> str:
-    """The address of the client, as far as it can be trusted.
+    """Client IP, trusting only the last ``trusted_proxy_hops`` entries of ``X-Forwarded-For``.
 
-    ``X-Forwarded-For`` is written by whoever sent the request, so only the
-    entries appended by proxies the platform runs are believed: the last
-    ``trusted_proxy_hops`` of them, counting the peer of the connection. With
-    no trusted proxy -- the local stack, where clients connect directly -- the
-    header is ignored entirely; otherwise a client would choose its own address
-    and with it a fresh anonymous quota per request.
+    With no trusted proxies the header is ignored.
     """
     peer = request.client.host if request.client is not None else "unknown"
     if trusted_proxy_hops <= 0:

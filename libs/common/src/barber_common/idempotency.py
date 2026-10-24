@@ -1,22 +1,8 @@
-"""Making a repeated request repeat its answer instead of its effect.
+"""Idempotency keys: a repeated request returns the stored response instead of repeating the
+effect.
 
-A client that loses the connection retries, and a double click sends the same
-request twice. The defence is the header ``Idempotency-Key`` plus a table: the
-key, a fingerprint of the request body and the answer that was given are
-written in the same transaction as the effect, so either both are there or
-neither is.
-
-What the scenario does with it, in order: ask :meth:`IdempotencyRepository.find`
-for the key, return the stored answer if the fingerprints match, refuse with
-``idempotency_key_reuse`` if they differ, otherwise do the work and store the
-answer beside it. Two identical requests racing each other both get that far;
-the second one loses the insert on the primary key, rolls back, and reads the
-answer the first one stored.
-
-Reading the header is a dependency, because it happens before the scenario and
-needs the raw body. Reading and writing the row is not: a dependency finishes
-before the transaction of the scenario opens, and the point of the table is
-that the key and the effect are committed together.
+The key, a body fingerprint and the response are saved in the same transaction as the
+effect. A concurrent duplicate loses on the primary key and reads the stored response.
 """
 
 from __future__ import annotations

@@ -1,9 +1,6 @@
-"""Test infrastructure shared by every service.
+"""Test helpers shared by the services: containers, isolation, waiting helpers.
 
-Imported only from ``conftest.py`` files. It lives in the shipped package
-rather than in a test directory because five services need the same containers,
-the same isolation and the same waiting helpers, and a copy per service drifts
-within a month.
+Imported only from ``conftest.py``.
 """
 
 from barber_common.testing.factories import (

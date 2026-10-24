@@ -1,15 +1,6 @@
-"""Normalisation of the two contacts a user is identified by.
+"""Email and phone normalisation, applied before writing so uniqueness holds.
 
-Both are normalised **before** the row is written, never on the way out. The
-database enforces uniqueness on what it stores, so a phone kept as the user
-typed it is a phone that is unique in four different spellings, and an email
-compared case-sensitively lets the same person register twice.
-
-The phone rules are deliberately small: strip what humans use as separators,
-accept the Russian national form, and check the result against E.164. A full
-national numbering plan is a library and a dependency of the domain; the
-platform serves one country and the check that matters here is that two
-spellings of one number cannot both reach the database.
+Phones: separators stripped, Russian national form accepted, E.164 checked.
 """
 
 from __future__ import annotations
@@ -37,15 +28,7 @@ MAX_EMAIL_LENGTH = 254
 
 
 def normalize_email(raw: str) -> str:
-    """Return the email in the form the uniqueness index compares.
-
-    Lower case and stripped, and nothing else: the separators a phone number
-    tolerates are meaningful inside an address, and removing them would turn
-    ``ivan@example.com`` into a different mailbox. The address itself is
-    validated at the edge by pydantic; what happens here is the part the
-    database depends on, and it has to happen for every write, including the
-    ones that never pass through a request body.
-    """
+    """Lowercase and strip the email, the form the unique index compares."""
     email = raw.strip().lower()
     if not email or "@" not in email or len(email) > MAX_EMAIL_LENGTH:
         raise InvalidEmailAddress("Email address is not valid")

@@ -1,13 +1,6 @@
-"""Redis read-through cache the service can run without.
+"""Redis read-through cache that degrades to a miss on any error.
 
-* Any Redis error is logged and treated as a miss.
-* Every call runs under a timeout.
-* A Redis that keeps failing is left alone for a while: a circuit breaker
-  turns every call into an immediate miss instead of a timeout each.
-* :meth:`Cache.disabled` builds a cache with no client, for deployments without
-  Redis and for tests.
-
-Key schemes and invalidation belong to the service that uses the cache.
+Calls run under a timeout, and a circuit breaker skips Redis while it keeps failing.
 """
 
 from __future__ import annotations
@@ -92,7 +85,7 @@ class Cache:
     """A cache whose failures are misses.
 
     Values are bytes. Serialisation belongs to the caller, which knows the
-    schema and can validate what comes back -- a document written by an older
+    schema and can validate what comes back: a document written by an older
     release must not be handed to a model that has changed shape.
     """
 

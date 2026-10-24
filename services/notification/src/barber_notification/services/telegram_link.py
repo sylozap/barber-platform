@@ -1,10 +1,6 @@
-"""Linking a Telegram chat to an account, and unlinking it.
+"""Linking a Telegram chat via a one-time code passed to the bot (``/start <code>``).
 
-The user asks for a code while signed in, then opens the bot with it
-(``t.me/<bot>?start=<code>``). Telegram sends ``/start <code>`` from their
-chat, and that chat becomes their Telegram address. The code proves the chat
-belongs to whoever held the session: it is random, short-lived, single-use and
-stored only as a hash.
+The code is random, short-lived, single-use and stored as a hash.
 """
 
 from __future__ import annotations
@@ -113,8 +109,8 @@ class LinkTelegramChat:
     async def execute(self, *, code: str, chat_id: int) -> UUID | None:
         """The user now reachable in this chat, or nothing for a bad code.
 
-        The recipient row may not exist yet -- the registration event can still
-        be on its way -- so it is created, and the contacts arrive later.
+        The recipient row may not exist yet (the registration event can still
+        be on its way) so it is created, and the contacts arrive later.
         """
         async with transaction(self._session):
             user_id = await self._links.claim(hash_code(code), now=self._clock())

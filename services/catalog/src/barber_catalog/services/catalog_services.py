@@ -1,8 +1,4 @@
-"""Creating, changing, listing and archiving the services of a salon.
-
-Named ``catalog_services`` to avoid confusion with platform services. A service
-is never deleted, only archived. Price changes do not affect existing bookings.
-"""
+"""Salon services (named to avoid confusion with platform services). Archived, never deleted."""
 
 from __future__ import annotations
 

@@ -1,8 +1,4 @@
-"""Assembling the scenarios a request needs.
-
-Builds each scenario from the session and the cache of the running service.
-Writers take the cache too, because they invalidate it.
-"""
+"""Builds scenarios from the request session and the service cache."""
 
 from __future__ import annotations
 

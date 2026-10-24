@@ -1,8 +1,4 @@
-"""The document of the platform and Swagger UI over it, in place of the gateway's own.
-
-Outside ``/api`` and outside the token check and the limits, like the probes:
-reading the contract is not using the API.
-"""
+"""Merged OpenAPI document of the platform and Swagger UI for it."""
 
 from __future__ import annotations
 

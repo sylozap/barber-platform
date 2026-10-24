@@ -26,7 +26,7 @@ class NotificationStatus(StrEnum):
 
 
 # What the worker may take: new rows, retries whose time came, and rows whose
-# lease ran out while being sent -- their worker is presumed dead.
+# lease ran out while being sent: their worker is presumed dead.
 _TAKEABLE = (NotificationStatus.PENDING.value, NotificationStatus.SENDING.value)
 
 

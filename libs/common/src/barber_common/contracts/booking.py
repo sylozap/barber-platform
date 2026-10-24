@@ -1,9 +1,4 @@
-"""Contracts of the booking endpoints other services call.
-
-``GET /api/v1/availability`` is public, and the gateway calls it for the
-nearest free slots on the card of a master. :class:`AvailabilityResponse` is
-what booking answers and what the gateway reads.
-"""
+"""Contracts of the booking endpoints other services call."""
 
 from __future__ import annotations
 

@@ -1,9 +1,4 @@
-"""Who may change a salon and everything that belongs to it.
-
-A ``super_admin`` may change anything; a ``salon_admin`` only their own salon,
-its masters, services and links. Checked by the scenario once the salon is
-known. Both refusals answer ``403 forbidden_for_role`` with the same text.
-"""
+"""Salon access rules: ``super_admin`` everywhere, ``salon_admin`` in their own salon."""
 
 from __future__ import annotations
 

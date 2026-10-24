@@ -1,9 +1,4 @@
-"""Recording how a visit went: completed, or the client did not come.
-
-The time stays taken either way -- both statuses are in the exclusion
-constraint -- so availability has nothing to forget and the cache is left
-alone.
-"""
+"""Close a visit as completed or no-show. The time stays occupied, so the cache is untouched."""
 
 from __future__ import annotations
 

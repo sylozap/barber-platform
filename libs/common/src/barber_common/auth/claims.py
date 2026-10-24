@@ -1,9 +1,4 @@
-"""Typed view of the claims of a verified token.
-
-Raw JWT claims are parsed once into :class:`Principal`, so the rest of the
-service never reads the claims dictionary. These are wire types and carry no
-rules of any service.
-"""
+"""Typed view of the claims of a verified token."""
 
 from __future__ import annotations
 

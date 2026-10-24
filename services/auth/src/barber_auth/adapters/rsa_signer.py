@@ -1,10 +1,5 @@
-"""The RS256 signing key of the service, behind the domain port.
-
-The only module that knows about PEM, RSA and PyJWT. The private key comes from
-the environment and stays in memory; the database holds only public keys.
-
-The ``kid`` is the RFC 7638 thumbprint of the public JWK, so the same key always
-has the same name and a restarted pod re-registers its existing row.
+"""RS256 signer. The private key comes from the environment; ``kid`` is the RFC 7638
+thumbprint.
 """
 
 from __future__ import annotations
@@ -80,7 +75,7 @@ def public_jwk_of_pem(public_pem: str, *, kid: str) -> PublicJwk:
 
     jwk = _public_jwk(public_key)
     # "sig" and RS256 are what a verifier needs in order to skip a key it
-    # cannot use. They are outside the thumbprint on purpose -- RFC 7638
+    # cannot use. They are outside the thumbprint on purpose: RFC 7638
     # hashes only the members that define the key itself.
     return {**jwk, "kid": kid, "use": "sig", "alg": ALGORITHM}
 

@@ -1,14 +1,6 @@
-"""The price list of a salon: what is offered, at what price, for how long.
+"""Salon price list. Reads are public, writes require a salon admin.
 
-Reading is open to anonymous callers and writing is not, for the reason given
-in :mod:`barber_catalog.api.v1.salons`.
-
-**There is no `DELETE` here, and its absence is the guarantee.** Bookings refer
-to a service by identifier, so a deleted row turns every past booking into a
-dangling reference. Withdrawing an offering is `POST .../archive`. FastAPI
-answers `405 Method Not Allowed` for the delete nobody wrote, which is a
-stronger promise than a handler that raises -- there is no code path to get
-wrong.
+There is no `DELETE`: bookings reference services, so a service is archived instead.
 """
 
 from __future__ import annotations
@@ -62,14 +54,8 @@ async def create_service(
 ) -> ServiceResponse:
     """Add a service to the price list.
 
-    `base_duration_min` and `base_price` are the salon's standard figures. A
-    master may override either through
-    `PUT /api/v1/masters/{id}/services/{sid}`; the figure that then counts is
-    the override, and the base is what a master who sets none charges.
-
-    Names are not unique. A salon may offer "Haircut" for adults and "Haircut"
-    for children and tell them apart by description, and refusing that would be
-    this service overruling a decision that belongs to the salon.
+    `base_duration_min` and `base_price` can be overridden per master. Names need not be
+    unique.
     """
     return await scenario.execute(caller=caller, salon_id=SalonId(salon_id), body=body)
 
@@ -84,14 +70,9 @@ async def list_salon_services(
     pagination: Pagination,
     scenario: ListSalonServicesScenario,
 ) -> Page[ServiceResponse]:
-    """The price list of a salon, alphabetically, one page at a time.
+    """Active services of a salon, alphabetically, cursor-paginated. Public.
 
-    **Open to anonymous callers.** Archived services never appear here and
-    there is no parameter to ask for them: archiving is how a salon withdraws
-    an offering, and a listing that could show withdrawn ones would need every
-    caller to remember to filter. An archived service is fetched by identifier.
-
-    Paging is by cursor; see `GET /api/v1/salons` for what that means.
+    Archived services are never listed but can still be fetched by id.
     """
     return await scenario.execute(salon_id=SalonId(salon_id), request=pagination)
 
@@ -125,14 +106,10 @@ async def update_service(
     caller: SalonAdministrator,
     scenario: UpdateServiceScenario,
 ) -> ServiceResponse:
-    """Change a service. Only the fields present in the body are touched.
+    """Partially update a service.
 
-    **Changing the price does not change anything already agreed.** A master's
-    override is a separate value and is untouched; a booking that already
-    exists carries its own snapshot of the name and the price, taken when it
-    was made. Only bookings made from now on see the new figure.
-
-    Archiving is not one of the fields: it is `POST .../archive`.
+    Existing bookings keep their snapshot and master overrides are untouched. Archiving is a
+    separate endpoint.
     """
     return await scenario.execute(caller=caller, service_id=ServiceId(service_id), body=body)
 
@@ -151,17 +128,8 @@ async def archive_service(
     caller: SalonAdministrator,
     scenario: ArchiveServiceScenario,
 ) -> None:
-    """Take a service off the price list without deleting it.
+    """Archive a service: hidden from listings, still readable by id. Idempotent (`204`).
 
-    The service leaves every listing and stays reachable by identifier, so the
-    bookings that name it remain readable. **This is the only way to withdraw
-    one** -- there is no `DELETE`, and there will not be one.
-
-    Repeating the call changes nothing and still answers `204`: the requested
-    state is the state that already holds, and a retry should not look like a
-    failure.
-
-    Links from masters to this service are left in place, so unarchiving does
-    not require every master's price overrides to be entered again.
+    Master links are kept.
     """
     await scenario.execute(caller=caller, service_id=ServiceId(service_id))

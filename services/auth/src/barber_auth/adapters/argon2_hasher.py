@@ -1,9 +1,4 @@
-"""argon2id behind the password port.
-
-The parameters come from the settings. Every stored hash carries the parameters
-it was made with, so raising the cost keeps old hashes verifiable, and
-``needs_rehash`` tells when to replace one after a successful login.
-"""
+"""argon2id password hasher; ``needs_rehash`` detects hashes made with old parameters."""
 
 from __future__ import annotations
 

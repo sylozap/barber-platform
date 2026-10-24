@@ -1,13 +1,6 @@
-"""Keeping the settings of masters in step with catalog.
+"""Keeps master settings in sync with catalog.
 
-A master's settings row is created by ``master.created`` and follows
-``master.updated`` from then on. A master whose creation booking never heard
-of -- created before the consumer ran, or with the event long gone from the
-topic -- gets the row the first time their schedule is touched, from the
-profile catalog describes.
-
-Every write here tolerates the other path having been first: the event and the
-lazy read can race for one master, and both leave one row behind.
+Created by ``master.created`` or lazily on first schedule access; both paths are idempotent.
 """
 
 from __future__ import annotations

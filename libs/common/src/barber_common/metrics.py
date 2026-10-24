@@ -1,13 +1,6 @@
-"""Prometheus metrics: RED for HTTP, helpers for the domain counters.
+"""Prometheus metrics: RED metrics for HTTP and helpers for domain counters.
 
-One rule governs everything here: an identifier never becomes a label. A label
-whose value is a booking id, a master id or a concrete URL multiplies the number
-of time series by the number of rows in the database, and the first service to
-do it takes Prometheus down with it. The path label therefore holds the route
-template, ``/bookings/{id}``, which the instrumentation derives from the router.
-
-A new metric is declared together with the answer to "what decision do I make
-when I see it change". A metric without that answer is not declared.
+IDs are never used as labels; the path label is the route template.
 """
 
 from __future__ import annotations

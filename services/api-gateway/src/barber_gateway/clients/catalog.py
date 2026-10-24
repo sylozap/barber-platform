@@ -1,9 +1,4 @@
-"""The card of a master, as the gateway reads it from ``catalog``.
-
-The public ``GET /api/v1/masters/{id}``, without a token: the card is part of
-the shop window, and catalog answers it to anyone. The answer is the shared
-contract, so a change of its shape breaks the type check rather than a request.
-"""
+"""Client for the public master endpoint of ``catalog``."""
 
 from __future__ import annotations
 

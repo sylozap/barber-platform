@@ -1,10 +1,4 @@
-"""Deduplication of incoming events.
-
-``processed_events`` stores ``(event_id, consumer_group)`` in the same
-transaction as the effect of the handler, so a redelivered event is detected
-and skipped. The consumer group is part of the key because several groups read
-the same topic.
-"""
+"""Deduplication of incoming events by ``(event_id, consumer_group)``."""
 
 from __future__ import annotations
 

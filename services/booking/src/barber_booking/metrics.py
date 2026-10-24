@@ -1,23 +1,6 @@
-"""Domain metrics of the booking service.
+"""Domain metrics of booking.
 
-Each one exists because a change in it leads to a decision:
-
-* ``bookings_created_total`` is the business pulse -- a salon that stops
-  appearing here has a broken schedule or a deactivated master;
-* ``bookings_closed_total`` is how bookings end: a rise of no-shows or of
-  cancellations by the salon is a conversation with that salon;
-* ``bookings_upcoming_seconds`` is the time booked ahead, the load of the
-  masters of a salon -- a salon whose week empties is losing its clients;
-* ``booking_conflicts_total`` counts lost races, which is how stale the
-  availability clients are shown actually is;
-* ``availability_query_duration_seconds`` watches the heaviest query of the
-  platform, and its p95 is what the SLO is written against;
-* ``reminder_scheduler_last_run_timestamp`` stops moving when the scheduler
-  dies quietly, which nothing else would show until clients miss reminders.
-
-The salon is a label and the master is not: there are twenty salons and two
-hundred masters, and an identifier in a label is how a metric turns into a
-memory leak.
+The salon is a label, the master is not (too many values).
 """
 
 from __future__ import annotations

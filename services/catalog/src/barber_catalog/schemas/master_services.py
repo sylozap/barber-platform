@@ -12,16 +12,7 @@ __all__ = ["MasterServiceRequest", "MasterServiceResponse"]
 
 
 class MasterServiceRequest(BaseModel):
-    """What a master charges for a service, and how long they take.
-
-    Both fields are optional and independent. Omitting one -- or sending it as
-    ``null`` -- means "the salon's figure", which is how an override is
-    removed: there is no separate endpoint for clearing one, because ``PUT``
-    already means "this is the whole state of the link".
-
-    A body of ``{}`` is therefore valid and means "this master offers this
-    service at the salon's price, for the salon's duration".
-    """
+    """Master overrides for a service. Omitted or ``null`` means the salon's value."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -44,7 +35,7 @@ class MasterServiceResponse(BaseModel):
     """The link as it now stands, with the figures already resolved.
 
     ``price`` and ``duration_min`` are what a client would be charged and how
-    long they would be booked for -- the override where there is one, the
+    long they would be booked for: the override where there is one, the
     salon's base figure otherwise. Both sides are returned so the caller can
     see what their request actually did.
     """

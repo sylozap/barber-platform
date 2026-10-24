@@ -1,16 +1,7 @@
-"""Which kinds of notification a user wants, on which channels.
+"""Notification preferences: one switch per kind and channel, on by default.
 
-A matrix of switches, one per kind and channel, every one on until the user
-turns it off. Switching everything off is allowed: it is the user's choice, and
-the platform imposes no minimum. The confirmation letter is not a kind -- it is
-sent to the address being confirmed whatever the switches say.
-
-Stored in ``recipients.preferences`` as the whole matrix::
-
-    {"bookings": {"email": true, "telegram": false}, "reminders": {"email": true, "telegram": true}}
-
-Read tolerantly: only a plain ``false`` turns a switch off. A value this code
-cannot read must not silence a user.
+Stored as a JSON matrix in ``recipients.preferences``. Only an explicit ``false`` disables a
+channel. The confirmation email ignores preferences.
 """
 
 from __future__ import annotations

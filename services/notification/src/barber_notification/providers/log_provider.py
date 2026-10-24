@@ -1,14 +1,7 @@
-"""A provider that writes messages to a log instead of sending them.
+"""Provider that writes messages to the ``barber_notification.messages`` logger.
 
-The provider of the ``email`` channel until there is a mail provider, and of
-``telegram`` when no bot token is configured. The messages go to a logger of
-their own, ``barber_notification.messages``, so every query that reads them is
-separate from the service log.
-
-The text and the address are written only in the ``local`` and ``test``
-environments. Anywhere else the record says that a message went out, and not
-what it said or to whom: an address is personal data, and a confirmation letter
-carries a credential.
+Used for email and for Telegram without a bot token. Text and address are only logged in
+``local`` and ``test``.
 """
 
 from __future__ import annotations

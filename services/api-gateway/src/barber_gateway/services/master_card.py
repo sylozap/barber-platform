@@ -1,19 +1,7 @@
-"""The card of a master: catalog and booking, asked at once, in one answer.
+"""Master card: catalog and booking queried concurrently.
 
-The one aggregating endpoint of the gateway, and it is meant to stay the only
-one.
-
-Both services are asked at the same time, so the card costs the slower of the
-two calls, not their sum. They do not weigh the same, though:
-
-* without catalog there is no card -- a master catalog does not know is a
-  ``404``, a catalog that does not answer a ``503``;
-* without booking there is still a card -- the profile, with the slots marked
-  ``unavailable`` rather than an empty list that would read as "fully booked".
-
-The window of dates starts a day before today in UTC. The gateway does not know
-the zone of the salon, and a salon east of Greenwich is already a day ahead;
-booking drops the starts that have passed, so the extra day costs nothing.
+Catalog is required (``404``/``503``); if booking fails, slots are marked ``unavailable``.
+The date window starts a day early because the gateway doesn't know the salon's time zone.
 """
 
 from __future__ import annotations

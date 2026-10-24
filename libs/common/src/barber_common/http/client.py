@@ -1,18 +1,7 @@
 """HTTP client for calls between services.
 
-Every rule here exists because of a specific failure:
-
-* separate connect and read timeouts, because a call without a timeout holds a
-  connection until the pool of the caller is empty;
-* retries for idempotent methods only, because retrying a POST creates a second
-  booking, and no header saves a request that already succeeded;
-* a circuit breaker, because a service that is down should cost one failure,
-  not one timeout per request;
-* translation of a foreign ``problem+json`` into an exception, so the caller
-  reads a domain code instead of guessing from a status.
-
-A service calls another service through this class and only from ``clients/``.
-A bare ``httpx`` call somewhere else has none of the above and is a defect.
+Separate connect/read timeouts, retries only for idempotent methods, a circuit breaker, and
+``problem+json`` errors translated into exceptions.
 """
 
 from __future__ import annotations
@@ -87,7 +76,7 @@ class UpstreamTimeout(DomainError):
     Kept apart from :class:`UpstreamUnavailable` because the two mean different
     things to whoever sent the request. Unavailable: it never arrived, and
     sending it again is safe. Timed out: it arrived, and it may have done its
-    work -- a booking may exist -- so a blind retry of a write is not safe.
+    work (a booking may exist), so a blind retry of a write is not safe.
     """
 
     code = "upstream_timeout"
@@ -297,7 +286,7 @@ class ServiceClient:
 def _read_problem(response: httpx.Response) -> tuple[str | None, str]:
     """Read the domain code out of a foreign ``problem+json``.
 
-    A service that answers with something else -- a proxy page, an empty body --
+    A service that answers with something else (a proxy page, an empty body)
     is not a reason to fail here, so the status becomes the description.
     """
     fallback = f"{response.status_code} from the upstream service"

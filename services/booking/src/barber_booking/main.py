@@ -1,8 +1,4 @@
-"""Entry point of the booking service.
-
-Schedules, availability and the lifecycle of a booking. Holds the main
-invariant of the platform: the bookings of one master never overlap.
-"""
+"""Entry point of the booking service."""
 
 from __future__ import annotations
 

@@ -1,9 +1,4 @@
-"""Managing the roles of a user.
-
-Both endpoints are limited to the roles that may grant roles; the salon scope
-is checked by the scenario. A change reaches the user's access token on their
-next refresh.
-"""
+"""User role management. Role changes reach the access token on the next refresh."""
 
 from __future__ import annotations
 
@@ -43,14 +38,11 @@ async def grant_role(
     caller: RoleAdministrator,
     scenario: GrantRoleScenario,
 ) -> RoleGrantResponse:
-    """Give a user a role.
+    """Grant a role to a user.
 
-    A `super_admin` grants any role. A `salon_admin` grants `master`, and only
-    in a salon they administer. `client` cannot be granted and answers `422`.
-
-    The new role appears in the user's access token after their next
-    `refresh`, within fifteen minutes. Granting a role the user already holds
-    answers `201` again.
+    `super_admin` can grant any role, `salon_admin` only `master` in their salon. `client`
+    cannot be granted (`422`). Granting an existing role returns `201`. The new role
+    appears in the access token after the next `refresh`.
     """
     granted = await scenario.execute(
         caller=caller,

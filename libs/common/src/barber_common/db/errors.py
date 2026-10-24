@@ -1,8 +1,6 @@
-"""Helpers that tell database integrity errors apart.
+"""Helpers to read the SQLSTATE and constraint name from integrity errors.
 
-They read the SQLSTATE and the constraint name from a SQLAlchemy
-``DBAPIError``. The asyncpg dialect keeps the constraint name only on
-``__cause__``, and these helpers hide that detail from services.
+With asyncpg the constraint name is only available on ``__cause__``.
 """
 
 from __future__ import annotations

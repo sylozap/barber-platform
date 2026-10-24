@@ -1,17 +1,7 @@
-"""FastAPI dependencies that close an endpoint with an authentication check.
+"""FastAPI dependencies that require an authenticated caller and, optionally, roles.
 
-::
-
-    @router.post("/salons")
-    async def create_salon(caller: Annotated[Principal, Depends(require_roles("super_admin"))]): ...
-
-The service verifies the bearer token itself; gateway headers such as
-``X-User-Id`` are never read. Roles are checked here, while the salon scope is
-checked by the scenario with
-:meth:`~barber_common.auth.claims.Principal.holds`.
-
-The token is read through FastAPI's ``HTTPBearer``, so every closed endpoint
-declares the bearer scheme in OpenAPI and Swagger UI offers to send a token.
+Gateway headers such as ``X-User-Id`` are never read; the salon scope is checked by the
+scenario via :meth:`~barber_common.auth.claims.Principal.holds`.
 """
 
 from __future__ import annotations
@@ -171,7 +161,7 @@ def _bearer_token(credentials: HTTPAuthorizationCredentials | None) -> str:
 
 
 # Ready-made annotations, so an endpoint does not repeat the Depends call.
-# Role-checked endpoints build their own -- require_roles takes arguments and
+# Role-checked endpoints build their own: require_roles takes arguments and
 # so has to be called at the point of use.
 CurrentUser = Annotated[Principal, Depends(current_user)]
 CurrentPrincipal = Annotated[Principal, Depends(current_principal)]

@@ -1,12 +1,6 @@
-"""Structured logging: JSON to stdout, one format for the whole platform.
+"""Structured JSON logging to stdout with a fixed record shape.
 
-The shape of a record is fixed here and does not change afterwards: Loki
-queries and Grafana dashboards are built on it. Every record carries
-``service``, ``env`` and the request context fields, whether or not a request
-is in progress.
-
-Third-party loggers (uvicorn, SQLAlchemy, aiokafka) go through the same
-formatter, so the output of a pod is JSON on every line.
+Third-party loggers (uvicorn, SQLAlchemy, aiokafka) use the same formatter.
 """
 
 from __future__ import annotations

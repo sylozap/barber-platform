@@ -1,20 +1,8 @@
-"""Telegram: the Bot API client and the provider of the ``telegram`` channel.
+"""Telegram Bot API client and the ``telegram`` channel provider.
 
-**The token is part of every URL** (``/bot<token>/sendMessage``), so two things
-that would normally write URLs are kept away from these calls: the
-OpenTelemetry instrumentation of httpx, which records the URL in the span and is
-suppressed around every call, and the ``HTTP Request: POST <url>`` line httpx
-logs at INFO, which is redacted.
-Error details kept from a response are Telegram's own description, never the
-request.
-
-Failures are sorted in two:
-
-* temporary -- a timeout, a refused connection, a 5xx, ``429`` with its
-  ``retry_after``: another attempt later may succeed;
-* permanent -- the user blocked the bot, the chat does not exist, the request
-  was refused: another attempt fails the same way. A blocked bot and a missing
-  chat also mean the address is dead.
+The bot token is part of the URL, so httpx tracing is suppressed and its request log is
+redacted. 5xx, timeouts and ``429`` are temporary failures; a blocked bot or missing chat is
+permanent.
 """
 
 from __future__ import annotations

@@ -1,10 +1,4 @@
-"""Payloads of the topics ``catalog`` publishes.
-
-Shared by ``catalog``, which writes them, and ``booking``, which reads them.
-``catalog.masters.v1`` carries the life cycle of master profiles and
-``catalog.services.v1`` that of salon services. Each topic is keyed by the id
-of its aggregate, so the events of one aggregate stay in order.
-"""
+"""Payloads of ``catalog.masters.v1`` and ``catalog.services.v1``, keyed by aggregate id."""
 
 from __future__ import annotations
 
@@ -86,13 +80,9 @@ class MasterDeactivated(_MasterEvent):
 
 
 class MasterUpdated(_MasterEvent):
-    """The current state of a master after a change.
+    """Full snapshot of a master after a change, so consumers stay idempotent.
 
-    A full snapshot keeps consumers idempotent under at-least-once delivery.
-    Offered services are not included. ``timezone`` is the zone of the salon:
-    a change of it is announced as this event for every master of the salon,
-    because the schedule of each is written in that zone. It is optional so a
-    snapshot written before it existed still parses.
+    ``timezone`` is optional for compatibility with snapshots written before it existed.
     """
 
     user_id: UUID
@@ -145,5 +135,5 @@ class ServiceArchived(_ServiceEvent):
     """A salon withdrew a service. It is not deleted and never will be.
 
     Bookings that already name it stay readable, so a consumer must not treat
-    this as a signal to forget the service -- only as one to stop offering it.
+    this as a signal to forget the service: only as one to stop offering it.
     """

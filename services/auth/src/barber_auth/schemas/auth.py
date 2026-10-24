@@ -39,7 +39,7 @@ class RegisterRequest(BaseModel):
 
     email: EmailStr
     phone: str = Field(min_length=5, max_length=32)
-    # Bounds only. The policy -- letters, digits, no surrounding whitespace --
+    # Bounds only. The policy (letters, digits, no surrounding whitespace)
     # is checked in the domain so that the message names the rule that failed.
     password: str = Field(min_length=MIN_PASSWORD_LENGTH, max_length=MAX_PASSWORD_LENGTH)
 
@@ -114,22 +114,14 @@ class LogoutRequest(BaseModel):
 
 
 class TokenPairResponse(BaseModel):
-    """What a login or a rotation returns.
+    """Token pair returned by login and refresh.
 
-    **The refresh token is in the body.** Where a client keeps it afterwards is
-    outside the reach of this service, and pretending otherwise by putting it
-    in a cookie would only move the decision somewhere less visible; the
-    trade-off is stated here so that it is part of the published contract
-    rather than folklore.
-
-    Both expiry moments are returned so a client can schedule a refresh instead
-    of discovering the expiry through a ``401``. They are RFC 3339 in UTC, like
-    every other timestamp in the API.
+    The refresh token is in the body. Expiry times are RFC 3339 in UTC.
     """
 
     access_token: str
     refresh_token: str
-    # noqa: S105 below -- "Bearer" is the scheme name RFC 6750 requires in the
+    # noqa: S105 below: "Bearer" is the scheme name RFC 6750 requires in the
     # Authorization header, not a secret.
     token_type: str = "Bearer"  # noqa: S105
     access_expires_at: datetime

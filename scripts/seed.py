@@ -1,39 +1,15 @@
 #!/usr/bin/env python
 """Fill the platform with demo data through its public API.
 
-Three salons in three time zones, twelve masters, fifteen services, weekly
-schedules with days off over the coming month, a hundred clients and bookings
-over the next two weeks, a few of them cancelled.
+Three salons in different time zones, twelve masters, fifteen services, schedules for the
+next month, a hundred clients and bookings over two weeks. Calls the services directly,
+bypassing gateway rate limits, signed in as the bootstrap ``super_admin``. Idempotent; uses
+a fixed random seed.
 
 Usage::
 
-    make seed                   # the compose stack, on its local ports
+    make seed
     SEED_AUTH_URL=... python scripts/seed.py
-
-In a cluster the same script runs as a Job (deploy/helm/service/templates/
-seed-job.yaml) against the Services of the namespace.
-
-**Through the API, never into a database.** Writing rows directly would skip
-the validation of the services and the events they publish, and leave states
-the platform cannot reach by itself. The script talks to auth, catalog and
-booking directly rather than through the gateway: the gateway limits
-registrations to three an hour per address and bookings to five a minute per
-caller, which is right for a person and makes a seed of a hundred clients
-impossible. The endpoints are the same ones the gateway forwards to.
-
-The administrator it signs in as is the first ``super_admin`` auth creates
-from configuration (BOOTSTRAP_ADMIN_*). Bookings are made by that
-administrator on behalf of the clients, as a salon books a client who called.
-
-**Running it again changes nothing.** Salons, services and masters are found
-by name and created only when missing. A client that already exists answers
-``409`` without its id, so a second run cannot tell whose bookings to make:
-bookings are created only in the run that registered their clients. The stand
-has no persistent storage, so in practice the seed always meets an empty
-platform; the second run is for a ``make kind-up`` repeated on a live one.
-
-What is created is decided by a fixed random seed, so two stands seeded on the
-same day look alike.
 """
 
 from __future__ import annotations
@@ -287,7 +263,7 @@ class SeedSettings(BaseSettings):
     # password: it is a credential.
     admin_email: str = "admin@barber.example"
     admin_password: SecretStr
-    # How long the services may take to become ready -- in a cluster the Job
+    # How long the services may take to become ready: in a cluster the Job
     # can start before the last of them.
     ready_timeout_seconds: float = 300.0
     # Requests in flight at once: registration hashes a password with argon2,

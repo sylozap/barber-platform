@@ -1,18 +1,8 @@
-"""The reminder scheduler: ``reminder.due`` once a booking's ``reminder_at`` comes.
+"""Reminder scheduler.
 
-Kafka cannot hold a message back until a moment, and a consumer that sleeps
-holds its partition, so the schedule lives in the database. Every
-minute a pass takes the bookings whose reminder is due and, in one transaction,
-writes ``reminder.due`` to the outbox and stamps ``reminder_sent_at``.
-
-That one transaction is the whole guarantee. A pod that dies before the commit
-leaves the reminders unstamped and the next pass sends them; one that dies
-after has sent them through the outbox already. ``SKIP LOCKED`` keeps two
-replicas from taking the same booking. A cancelled booking is not a candidate,
-and a moved one has a fresh ``reminder_at`` and no stamp.
-
-A reminder that comes after its visit has begun -- the scheduler was down for
-hours -- tells the client nothing. It is stamped without an event and logged.
+Every minute, writes ``reminder.due`` to the outbox and stamps ``reminder_sent_at`` in one
+transaction; ``SKIP LOCKED`` keeps replicas from taking the same booking. Reminders due
+after the visit started are stamped without an event.
 """
 
 from __future__ import annotations

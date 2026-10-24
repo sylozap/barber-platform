@@ -1,9 +1,4 @@
-"""Registering the signing key and publishing the public keys.
-
-:class:`RegisterSigningKey` runs once at startup and stores the public key of
-this process. :class:`PublishedKeys` answers JWKS requests with every active
-key, which during a rotation is two.
-"""
+"""Signing key registration at startup and the list of keys published in JWKS."""
 
 from __future__ import annotations
 
@@ -50,7 +45,7 @@ class RegisterSigningKey:
                 public_pem=self._signer.public_pem,
             )
 
-        # The kid is public -- it travels in the header of every token -- so
+        # The kid is public (it travels in the header of every token) so
         # unlike the key itself it belongs in the log.
         _logger.info("signing key registered", kid=self._signer.kid)
         return self._signer.kid

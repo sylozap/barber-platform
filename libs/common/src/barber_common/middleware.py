@@ -1,12 +1,7 @@
 """ASGI middleware of the chassis.
 
-Written against the raw ASGI interface rather than ``BaseHTTPMiddleware``: the
-latter runs the handler in a task of its own, and a context variable set there
-does not reliably reach the endpoint. The correlation id has to reach it.
-
-Order matters. Correlation id is installed first, before anything can log or
-fail, otherwise the earliest records of a request -- the interesting ones when
-something goes wrong -- carry no identifier at all.
+Pure ASGI instead of ``BaseHTTPMiddleware`` so context variables reach the endpoint. The
+correlation id middleware runs first.
 """
 
 from __future__ import annotations

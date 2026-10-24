@@ -1,8 +1,4 @@
-"""Hashing of email confirmation tokens.
-
-Only the SHA-256 of a token is stored; the token itself exists only in the
-email. SHA-256 is enough because the token is 32 random bytes.
-"""
+"""Email confirmation tokens: only the SHA-256 hash is stored."""
 
 from __future__ import annotations
 

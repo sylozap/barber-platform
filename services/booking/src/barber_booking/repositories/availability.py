@@ -1,16 +1,7 @@
-"""Free slots of one master, computed by the database.
+"""Free slots computed in SQL.
 
-Raw SQL rather than the ORM, and deliberately so. This is the hot path of the
-platform, and the whole calculation -- unfolding local hours into instants,
-cutting breaks out of them, laying a grid over what is left and dropping what
-overlaps a booking -- is set arithmetic that PostgreSQL does in one pass.
-Pulling bookings into Python to subtract intervals there would not scale, and
-would put a second implementation of the invariant next to the constraint that
-holds it.
-
-The reference implementation lives in ``domain/slots.py`` and
-``domain/schedule.py``; a test runs both over the same cases and requires the
-same answers.
+This is the hot path, so the schedule unfolding and overlap filtering run in PostgreSQL.
+``domain/slots.py`` is the reference implementation, compared in tests.
 """
 
 from __future__ import annotations
@@ -184,15 +175,9 @@ class AvailabilityRepository:
         not_after: datetime,
         ignoring: BookingId | None = None,
     ) -> dict[date, list[datetime]]:
-        """Free starts of each date from ``date_from`` to ``date_to``.
+        """Free start times per date between ``date_from`` and ``date_to``.
 
-        ``not_before`` is usually ``now`` plus the salon's minimum lead, and
-        ``not_after`` the end of its booking horizon; both are passed in rather
-        than read from the clock here, so a test can place them where it needs
-        them. Dates without a single free start are absent from the answer.
-
-        ``ignoring`` leaves one booking out of the busy time: a booking being
-        moved does not stand in its own way.
+        ``ignoring`` excludes one booking from busy time (used when rescheduling).
         """
         result = await self._session.execute(
             _SLOTS,

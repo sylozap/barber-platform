@@ -1,19 +1,4 @@
-"""Where a service gets the public keys it verifies tokens with.
-
-Two implementations answer the same question, "give me the key named by this
-``kid``", and the difference is what happens when the answer is not known yet.
-
-:class:`StaticKeys` holds keys it was given. ``auth`` uses it: the service that
-signs the tokens already has the key, and fetching it over HTTP from itself
-would add a network call and a startup dependency on its own readiness.
-
-:class:`~barber_common.auth.jwks.JwksClient` fetches them from ``auth`` and
-caches them. Every other service uses that.
-
-The verifier depends on this port and not on either of them, so the rules --
-which algorithm, which issuer, what counts as expired -- are written once and
-do not care where the key came from.
-"""
+"""Key sources for token verification: static keys (used by ``auth``) or JWKS (everyone else)."""
 
 from __future__ import annotations
 

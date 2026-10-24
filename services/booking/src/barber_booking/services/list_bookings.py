@@ -1,9 +1,4 @@
-"""Reading bookings: a page of them, or one.
-
-Both answer strictly within the caller's scope, and both apply it in the
-query. A booking outside the scope does not exist for this caller, so reading
-one is ``404`` -- never ``403``, which would confirm that it is there.
-"""
+"""Read bookings within the caller's scope. Out-of-scope bookings are ``404``, not ``403``."""
 
 from __future__ import annotations
 

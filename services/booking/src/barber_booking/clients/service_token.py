@@ -1,9 +1,4 @@
-"""The token booking presents when it calls another service.
-
-Obtained from ``auth`` with the client credentials of this service and kept in
-memory until shortly before it expires. Concurrent callers wait for one request
-instead of each asking ``auth`` for a token of their own.
-"""
+"""Service token for booking's outgoing calls, cached until shortly before expiry."""
 
 from __future__ import annotations
 
@@ -75,7 +70,7 @@ class ServiceTokenProvider:
     def forget(self) -> None:
         """Drop the token, so the next call fetches a new one.
 
-        For a token the other side refused before its expiry -- a key rotated
+        For a token the other side refused before its expiry: a key rotated
         in ``auth``, a clock that drifted.
         """
         self._token = None

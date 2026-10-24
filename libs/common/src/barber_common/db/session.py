@@ -1,8 +1,7 @@
-"""Sessions, transactions and the unit of work.
+"""Sessions and the unit of work.
 
-Transaction boundaries belong to the scenario layer. A repository never
-commits: otherwise the row, the outbox record and the idempotency key cannot be
-written inside one transaction.
+Repositories never commit: the scenario owns the transaction, so the row, the outbox record
+and the idempotency key are written together.
 """
 
 from __future__ import annotations
@@ -60,14 +59,9 @@ _PENDING_KEY = "barber_after_commit"
 
 
 def after_commit(session: AsyncSession, callback: Callable[[], None]) -> None:
-    """Run ``callback`` once the transaction the session is in commits.
+    """Run ``callback`` after the current transaction commits; drop it on rollback.
 
-    For what must count only work that happened: a counter moved inside a
-    transaction that then rolls back -- a consumer retrying a handler -- would
-    count the same thing twice. On a rollback the callback is dropped.
-
-    The scenario may not own the transaction it runs in, so "after the block"
-    is not always "after the commit"; this is.
+    Used for metrics that must not be counted twice when a handler is retried.
     """
     pending: list[Callable[[], None]] | None = session.info.get(_PENDING_KEY)
     if pending is None:

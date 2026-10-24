@@ -1,38 +1,13 @@
 #!/usr/bin/env python
-"""Prepare the clients the load test signs in as.
+"""Register, confirm and sign in the clients used by the k6 scenario.
 
-Registers ``LOADTEST_USERS`` accounts (``load-NNN@load.barber.example``),
-confirms their addresses, signs each of them in, and writes the password and
-a fresh access token per client to ``loadtest/k6/users.json`` for the k6
-scenario to read.
+Writes credentials and fresh access tokens to ``loadtest/k6/users.json``. Calls ``auth``
+directly, since the gateway rate limits registration, and reads confirmation tokens from the
+notification log. Safe to run again.
 
 Usage::
 
-    make loadtest-users          # kind: port-forwards auth, reads the logs of notification
-    make loadtest                # runs this first, so the tokens are fresh
-
-**The tokens are signed in here, not by k6.** A sign-in through the gateway is
-an anonymous request, thirty a minute per address, and k6 is one address: a
-hundred clients would take its setup four minutes. An access token lives
-fifteen minutes, which bounds a run (loadtest/k6/README.md).
-
-**Why not the demo clients of the seed.** Their passwords are thrown away and
-their addresses are never confirmed: they cannot sign in, and nothing reaches
-them. The load test needs clients that sign in -- the gateway lets an
-anonymous address make thirty requests a minute, a user a hundred and twenty,
-and a booking takes a token -- and that receive what they book: the Kafka
-drill counts the notifications of the bookings made.
-
-**Auth directly, not the gateway**, for the reason the seed gives: the gateway
-lets an address register three accounts an hour.
-
-**The confirmation token comes from the log** of notification. The letter is
-written there by the log provider in the ``local`` environment, the one kind
-runs in, and its fields are cleared from the journal once it is sent, so the
-log is the one place the token is left.
-
-**Running it again creates nothing.** The password is kept in the output file
-and reused; an account that exists and is confirmed is only signed in again.
+    make loadtest-users
 """
 
 from __future__ import annotations

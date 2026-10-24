@@ -1,9 +1,4 @@
-"""Refresh tokens: issuing, locking, and revoking whole families.
-
-Everything here works with the hash of a token. The token itself exists once,
-in the response that carried it, and is never stored, logged or compared as a
-plain value.
-"""
+"""Refresh token repository. Works only with token hashes."""
 
 from __future__ import annotations
 
@@ -114,7 +109,7 @@ class RefreshTokenRepository:
         """Run a bulk revocation and report how many rows it touched.
 
         ``AsyncSession.execute`` is typed as returning a ``Result``, which has
-        no ``rowcount`` -- an UPDATE really returns a ``CursorResult``, and the
+        no ``rowcount``: an UPDATE really returns a ``CursorResult``, and the
         narrowing that says so is done once here instead of at both call sites.
         """
         result = await self._session.execute(statement)

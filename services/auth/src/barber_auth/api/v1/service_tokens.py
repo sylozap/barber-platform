@@ -1,9 +1,4 @@
-"""``POST /internal/v1/token``.
-
-Internal endpoint, mounted at ``/internal/v1`` and not published through the
-gateway. It requires no token: the client credentials in the body are what is
-checked.
-"""
+"""``POST /internal/v1/token``: client credentials for service-to-service calls."""
 
 from __future__ import annotations
 
@@ -26,13 +21,9 @@ router = APIRouter(prefix="/internal/v1", tags=["internal"])
 async def issue_service_token(
     body: ServiceTokenRequest, scenario: IssueServiceTokenScenario
 ) -> ServiceTokenResponse:
-    """Get a token for calls between services.
+    """Issue a short-lived service token (`scopes`, `typ: service`, no refresh).
 
-    An unknown client, a wrong secret and a deactivated client all answer `401`
-    with the same body.
-
-    The token carries `scopes`, no `roles`, and `typ` `service`. It is short
-    lived and cannot be refreshed; the client requests a new one.
+    Unknown client, wrong secret and deactivated client all return the same `401`.
     """
     issued = await scenario.execute(
         client_id=body.client_id,

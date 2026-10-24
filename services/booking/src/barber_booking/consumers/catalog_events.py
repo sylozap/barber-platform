@@ -1,14 +1,6 @@
-"""Forgetting what booking cached about the catalog, as soon as it changes.
+"""Invalidates cached catalog data on catalog events by bumping cache generations.
 
-A changed master or service increments its generation in the cache, which
-retires both the cached answers of ``catalog`` and the cached availability that
-depend on it. A duplicate delivery only increments once more; an event type
-without a handler here is logged and committed by the runner.
-
-The Redis call happens inside the transaction the runner opens to record the
-event. It is bounded by the cache timeout and touches no row, so it holds the
-connection for milliseconds, and a Redis that is down is a miss rather than a
-failure: the TTL then bounds how long the stale answer lives.
+Runs inside the consumer transaction; a Redis failure is ignored and TTL bounds staleness.
 """
 
 from __future__ import annotations

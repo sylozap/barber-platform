@@ -1,9 +1,4 @@
-"""Token verification: the signature, then the claims that must hold.
-
-* Only RS256 is accepted; the algorithm is never taken from the token header.
-* The issuer must match the configured one.
-* Expiry allows a small leeway for clock skew between pods.
-"""
+"""Token verification: RS256 only, configured issuer, small leeway for clock skew."""
 
 from __future__ import annotations
 

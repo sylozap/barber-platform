@@ -1,9 +1,4 @@
-"""Failures the rules of auth can detect.
-
-Each error carries its domain ``code``, and the chassis handler turns it into
-``problem+json``. The only chassis import of the domain is the ``DomainError``
-base.
-"""
+"""Domain errors of auth, each with its own ``code``."""
 
 from __future__ import annotations
 
@@ -127,8 +122,8 @@ class UserNotFound(DomainError):
 class RoleNotGrantable(DomainError):
     """The role cannot be handed out this way.
 
-    Either it is not grantable at all -- ``client`` arrives with registration
-    and has no second source -- or it was named without the salon it only makes
+    Either it is not grantable at all (``client`` arrives with registration
+    and has no second source) or it was named without the salon it only makes
     sense inside.
     """
 

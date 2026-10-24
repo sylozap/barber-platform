@@ -1,13 +1,5 @@
-"""How much of the week ahead is booked, per salon, for the business dashboard.
-
-The load of the masters is a question about the database, not about a request:
-nothing happens when a week fills up gradually. So a pass once a minute sums
-the open bookings of the next seven days per salon and puts the result in
-``bookings_upcoming_seconds``.
-
-Read only, one aggregate, no lock: every replica may run it, and they report
-the same numbers. A salon whose bookings are all gone has its series removed
-rather than left at the last value, which would show a week still booked.
+"""Worker that reports booked time for the next seven days per salon
+(``bookings_upcoming_seconds``).
 """
 
 from __future__ import annotations

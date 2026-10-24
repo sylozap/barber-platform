@@ -1,10 +1,4 @@
-"""Free slots of a master, as the gateway reads them from ``booking``.
-
-The public ``GET /api/v1/availability``, without a token. The one refusal of
-booking that is the caller's doing -- the master does not offer the service
-asked about -- comes back as the same ``422 service_not_offered``; any other
-failure is booking's, and the caller decides what to make of it.
-"""
+"""Client for the public availability endpoint of ``booking``."""
 
 from __future__ import annotations
 

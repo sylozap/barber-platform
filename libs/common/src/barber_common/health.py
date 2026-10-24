@@ -1,12 +1,6 @@
 """Liveness and readiness probes.
 
-The two are deliberately different. ``/health/live`` answers whether the
-process itself is alive and touches nothing external; ``/health/ready``
-answers whether the instance can serve traffic and asks the dependencies the
-service registered.
-
-Mixing them is the classic outage amplifier: a database hiccup turns a
-readiness failure into a restart loop of otherwise healthy pods.
+Liveness never touches dependencies, so a database outage does not restart healthy pods.
 """
 
 from __future__ import annotations
@@ -73,14 +67,7 @@ class HealthRegistry:
         return self._is_draining
 
     def start_draining(self) -> None:
-        """Report not ready from now on, while still serving what is in flight.
-
-        Called when the shutdown begins. A pod that is being deleted leaves the
-        endpoints of the Service without waiting for this -- Kubernetes removes
-        it as part of the deletion, and the ``preStop`` pause of the chart
-        covers the time that takes. A failed readiness probe is what removes a
-        pod that is shutting down for any other reason.
-        """
+        """Report not ready from now on, while still serving requests in flight."""
         self._is_draining = True
 
     def register(self, name: str, check: HealthCheck) -> None:

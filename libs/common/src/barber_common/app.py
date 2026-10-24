@@ -1,22 +1,7 @@
-"""Application factory: everything a service shares, assembled once.
+"""Application factory: middleware, error handlers, probes, metrics, tracing and shutdown.
 
-A service is left with its settings and its routers::
-
-    settings = BookingSettings.load()
-    app = create_app(settings, routers=[bookings_router, availability_router])
-
-What it gets in return: correlation id, structured access log, RFC 9457 error
-handlers, probes, metrics, tracing, and an orderly shutdown.
-
-The shutdown, as it happens in a cluster. Kubernetes deletes the pod and, at
-the same moment, starts removing it from the endpoints of the Service; the
-``preStop`` pause of the chart keeps the pod serving while that removal
-reaches every node. Then SIGTERM: uvicorn stops accepting connections and
-waits for the requests in flight (``UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN``), and
-only then runs the lifespan shutdown below -- readiness reports draining,
-the service stops its consumers, relay and workers, the pool is closed. The
-grace period of the pod is the sum of these phases, and the chart computes it
-(``deploy/helm/service/values.yaml``, ``shutdown``).
+Shutdown order: preStop pause, uvicorn drains in-flight requests, then the lifespan stops
+consumers and workers and closes the pool. The chart sizes the grace period to match.
 """
 
 from __future__ import annotations
@@ -147,7 +132,7 @@ def create_app(
     # Middleware is entered in reverse order of registration, so this reads
     # inside out: metrics sit closest to the endpoint, the correlation id
     # wraps everything. The access log is inside the tracing middleware on
-    # purpose -- outside it the span has already ended and the record would
+    # purpose: outside it the span has already ended and the record would
     # carry no trace_id, which is the field that makes it worth reading.
     instrument_app(app)
     app.add_middleware(AccessLogMiddleware)
@@ -161,11 +146,8 @@ def create_app(
 async def _drain(health: HealthRegistry, tracker: RequestTracker, timeout_seconds: float) -> None:
     """Fail the readiness probe, then wait for the requests in flight.
 
-    Under uvicorn the requests have usually finished by now: it waits for them
-    before the lifespan shutdown starts. The wait here covers a server that
-    does not, and the readiness answer covers a shutdown nobody deleted the
-    pod for -- the probe is then the only thing that takes it out of the
-    endpoints.
+    Uvicorn normally drains requests before the lifespan shutdown; this covers servers that
+    don't and shutdowns not caused by pod deletion.
     """
     health.start_draining()
     in_flight = tracker.in_flight

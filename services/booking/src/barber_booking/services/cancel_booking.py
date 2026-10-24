@@ -1,9 +1,6 @@
-"""Cancelling a booking, by its client or by the salon.
+"""Cancel a booking in one transaction without calling ``catalog``.
 
-One transaction, and no call to ``catalog``: the deadline travels with the
-booking, so a cancellation works when ``catalog`` is down and on the terms the
-client booked on. The row is locked first, so a cancellation and a completion
-arriving together cannot both decide from the same state.
+The deadline is part of the booking snapshot. The row is locked first.
 """
 
 from __future__ import annotations

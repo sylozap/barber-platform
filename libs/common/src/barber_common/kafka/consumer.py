@@ -1,21 +1,8 @@
-"""Consumer runner that handles every event the same way.
+"""Consumer runner shared by all services.
 
-The offset is committed only after the transaction of the handler commits; a
-message replayed after a crash is dropped by ``processed_events``.
-
-What the runner does around a handler:
-
-* restores ``correlation_id`` and the trace context from the message headers,
-  continuing the trace the event was written in;
-* routes by ``event_type``, logging and committing unknown types;
-* opens one transaction, claims the event for the consumer group, calls the
-  handler, commits;
-* sends unparseable messages to the dead letter topic at once, and failed
-  handlers there after the retries.
-
-A handler works in the session of that transaction and neither commits nor
-talks to the broker. An event it writes to the outbox takes the handled event
-as its ``causation_id`` and stays in the same trace.
+Handles each message in one transaction with dedup via ``processed_events``, commits the
+offset after the transaction, restores correlation and trace context, and sends unparseable
+or repeatedly failing messages to the DLQ.
 """
 
 from __future__ import annotations
@@ -53,7 +40,7 @@ __all__ = [
 ]
 
 # A handler gets the transaction and the event, and returns nothing: whatever
-# it produces -- a row, an outbox record -- belongs to that transaction.
+# it produces (a row, an outbox record) belongs to that transaction.
 EventHandler = Callable[[AsyncSession, JsonEnvelope], Awaitable[None]]
 
 _logger = get_logger(__name__)
@@ -66,7 +53,7 @@ EVENTS_PROCESSED = counter(
 
 # A retry is a handler that failed and is about to run again: the attempts
 # before the last. Retries growing while the DLQ stays quiet is a dependency
-# that fails now and then -- the warning before messages start to be lost.
+# that fails now and then: the warning before messages start to be lost.
 EVENT_RETRIES = counter(
     "event_retries_total",
     "Handler attempts repeated after a failure",
@@ -121,20 +108,7 @@ class InvalidMessage(Exception):
 
 
 class EventConsumer:
-    """Runner of the consumers of one service.
-
-    One instance owns one consumer group and the handlers of the event types
-    that group cares about::
-
-        consumer = EventConsumer(
-            topics=["catalog.masters.v1"],
-            group_id="booking.masters",
-            bootstrap_servers=settings.kafka_bootstrap_servers,
-            session_factory=database.session_factory,
-            dead_letters=publisher,
-        )
-        consumer.register("master.deactivated", deactivate_master)
-    """
+    """Runs one consumer group and dispatches events to handlers by ``event_type``."""
 
     def __init__(
         self,
@@ -209,15 +183,11 @@ class EventConsumer:
         _logger.info("consumer stopped", group_id=self._group_id)
 
     async def run_once(self, stop: asyncio.Event | None = None) -> int:
-        """Read one batch, handle it, commit as it goes. Returns the count.
+        """Read one batch, handle it and commit message by message. Returns the count.
 
-        Joins the group on the first pass rather than at startup, so a broker
-        that is down delays consumption instead of stopping the service.
-
-        ``stop`` set while the batch is handled ends the pass after the message
-        in hand is committed. The rest of the batch is left uncommitted and is
-        read again by whoever owns the partition next -- this consumer is about
-        to leave the group, and a shutdown must not wait for a whole batch.
+        Joins the group lazily, so a broker outage delays consumption instead of failing
+        startup. If ``stop`` is set mid-batch, the rest of the batch is left for the next
+        owner.
         """
         await self.start()
         batches = await self._client.getmany(
@@ -243,7 +213,7 @@ class EventConsumer:
         """Keep consuming until asked to stop.
 
         Started from the lifespan of the service, so a SIGTERM stops it between
-        messages -- after an offset commit, never in the middle of a handler.
+        messages: after an offset commit, never in the middle of a handler.
         """
         while not stop.is_set():
             try:

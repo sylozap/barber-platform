@@ -1,9 +1,4 @@
-"""Bodies of ``/api/v1/masters/{id}/schedule`` and ``/settings``.
-
-All times are wall-clock times of the salon, without a zone: a schedule is
-written the way the salon reads it, and unfolded into instants on the way to
-availability.
-"""
+"""Schedule and settings request bodies. Times are salon wall-clock time without a zone."""
 
 from __future__ import annotations
 
@@ -34,7 +29,7 @@ MAX_BUFFER_MIN = 240
 
 # A wall-clock time as the API writes it, "10:00:00". Not the "format: time"
 # pydantic would publish: that is the full-time of RFC 3339, which requires an
-# offset, and a time of a schedule has none by design -- so every answer would
+# offset, and a time of a schedule has none by design; so every answer would
 # break its own schema.
 LocalTime = Annotated[
     time,

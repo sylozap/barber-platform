@@ -1,10 +1,4 @@
-"""Rules of the token pair: access token claims and refresh token validity.
-
-Pure functions with the clock passed in. The access token is a signed statement
-verified locally by every service, so it cannot be revoked and has a short TTL.
-The refresh token is an opaque secret stored as a hash and rotated on every
-use.
-"""
+"""Token rules: access token claims (short TTL, not revocable) and refresh token validity."""
 
 from __future__ import annotations
 
@@ -68,9 +62,8 @@ def build_access_claims(
         "sub": str(user_id),
         "roles": [grant.as_claim() for grant in roles],
         "iss": issuer,
-        # Identifies this exact token. Nothing in the platform looks it up --
-        # access tokens are not tracked -- but it is what makes two otherwise
-        # identical tokens distinguishable in a log or an incident.
+        # Unique per token. Access tokens are not tracked, but this makes two
+        # otherwise identical tokens distinguishable in logs.
         "jti": str(token_id),
         "typ": ACCESS_TOKEN_TYPE,
         "iat": int(issued_at.timestamp()),

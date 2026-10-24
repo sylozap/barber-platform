@@ -1,11 +1,6 @@
-"""Accounts, as notification follows them from ``auth.users.v1``.
+"""Keeps the recipients table in sync with ``auth.users.v1`` and queues confirmation emails.
 
-The table of recipients is filled here and nowhere else: a notification has to
-go out while ``auth`` is down, so this service never asks it for contacts. The
-confirmation letter starts here too, addressed to the address the event names.
-
-Each handler runs in the runner's transaction, together with the row that marks
-the event processed: a redelivered event is dropped before it gets here.
+The local copy lets notifications go out while ``auth`` is down.
 """
 
 from __future__ import annotations

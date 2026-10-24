@@ -1,10 +1,4 @@
-"""When a master is free for a service.
-
-**Open to anonymous callers**, like reading the catalog: slots are part of the
-shop window, and a visitor looks at them before creating an account. Writing a
-booking is not open, and the gateway keeps this path in its rate-limited
-whitelist.
-"""
+"""Free slots of a master for a service. Public endpoint."""
 
 from __future__ import annotations
 
@@ -42,20 +36,12 @@ async def read_availability(
         date | None, Query(description="Last date, inclusive. Equal to date_from if absent.")
     ] = None,
 ) -> AvailabilityResponse:
-    """Free starts, date by date, for this master and this service.
+    """Free start times by date for a master and a service.
 
-    `service_id` is mandatory: how long a master is busy depends on the pair,
-    so a question without it has no answer. The window is at most two weeks.
-
-    **The answer is an estimate, not a reservation.** A slot listed here can be
-    taken by someone else before the booking is created; that request then
-    answers `409 slot_taken` with alternatives. Nothing reserves time except a
-    booking, and nothing decides whether time is free except the database.
-
-    Dates are the salon's calendar dates and starts are instants in UTC. A
-    deactivated master answers with `master_active` false and empty days rather
-    than an error, and so does a master whose schedule has never been set.
-    Dates beyond the salon's booking horizon come back empty.
+    `service_id` is required; the window is at most two weeks. The result is an estimate: a
+    listed slot may be taken before booking, which then returns `409 slot_taken`. Dates are
+    in the salon's calendar, start times in UTC. An inactive master or one without a
+    schedule returns empty days.
     """
     return await scenario.execute(
         master_id=MasterId(master_id),

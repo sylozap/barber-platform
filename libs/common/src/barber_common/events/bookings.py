@@ -1,18 +1,7 @@
 """Payloads of ``booking.bookings.v1`` and ``booking.reminders.v1``.
 
-Shared by ``booking``, which writes them, and ``notification``, which turns
-them into messages. The partitioning key is the booking, so the events of one
-appointment stay in order -- a cancellation must never overtake the creation it
-cancels.
-
-**No contact details travel here.** Who the client is reachable at belongs to
-``auth``, and ``notification`` keeps its own table of recipients filled from
-``auth.users.v1``. An event carries the data of its own aggregate and nothing
-else.
-
-``timezone`` is the salon's IANA zone, so a message can say "15:00" where the
-client lives rather than "12:00 UTC". Optional: booking may not know the zone
-of a master it never had settings for.
+Keyed by booking id to keep the events of one booking in order. No contact details:
+``notification`` resolves recipients from its own table.
 """
 
 from __future__ import annotations
@@ -61,16 +50,9 @@ class BookingEventType(StrEnum):
 
 
 class BookingCreated(BaseModel):
-    """A client has an appointment.
+    """A booking was created.
 
-    Everything a message about it needs, in the words of the booking itself:
-    when, with whom, for what, and what it costs. ``service_name`` and ``price``
-    are the snapshot the booking was made with, so a later change to the price
-    list does not rewrite what the client was told.
-
-    Frozen, because it describes something that has already happened, and
-    tolerant of unknown fields, because a consumer running an older schema must
-    not stop a partition over a field it does not know.
+    ``service_name`` and ``price`` are the snapshot taken at booking time.
     """
 
     model_config = ConfigDict(frozen=True, extra="ignore")
@@ -91,7 +73,7 @@ class BookingCreated(BaseModel):
     # When the reminder is due, or nothing if it is already in the past.
     reminder_at: datetime | None = None
     # Who made it: the client themselves, or an admin of the salon who booked
-    # on their behalf -- which changes how the client is told.
+    # on their behalf; which changes how the client is told.
     created_by: UUID | None = None
     timezone: str | None = None
 

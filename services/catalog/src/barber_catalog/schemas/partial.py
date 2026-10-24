@@ -17,7 +17,7 @@ def _not_null(value: object) -> object:
     return value
 
 
-# A field a change may leave out -- absent means untouched -- but not set to
+# A field a change may leave out (absent means untouched) but not set to
 # ``null``: the column behind it has no empty value. The default ``None``
 # stands for "absent"; pydantic does not validate defaults, so it never meets
 # the validator, while an explicit ``null`` does and is refused with ``422``

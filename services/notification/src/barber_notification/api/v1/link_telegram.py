@@ -1,8 +1,4 @@
-"""Linking the caller's Telegram chat.
-
-Any signed-in user, for their own account only: the account is the subject of
-the token, never a parameter.
-"""
+"""Linking the caller's Telegram chat."""
 
 from __future__ import annotations
 

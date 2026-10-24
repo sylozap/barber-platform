@@ -1,11 +1,6 @@
-"""Creating, changing and listing salons.
+"""Salons. Only ``super_admin`` creates them; reads are public.
 
-Only a ``super_admin`` creates salons; the administrator of a salon may change
-it. Reading is open to everyone, including anonymous callers.
-
-A salon has no topic of its own. The one change of it another service has to
-learn about is the time zone -- ``booking`` writes every schedule in it -- and
-that is announced as ``master.updated`` for each master of the salon.
+A time zone change is published as ``master.updated`` for each master of the salon.
 """
 
 from __future__ import annotations

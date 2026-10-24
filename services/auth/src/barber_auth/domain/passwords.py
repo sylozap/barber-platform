@@ -1,9 +1,4 @@
-"""The password policy and the port a hasher has to satisfy.
-
-The policy is a pure function that decides whether a password is acceptable.
-Storage is behind the :class:`PasswordHasher` protocol. The password value never
-appears in a message, a log record or an exception.
-"""
+"""Password policy and the hasher protocol."""
 
 from __future__ import annotations
 
@@ -56,7 +51,7 @@ def check_password_policy(password: str, *, min_length: int = MIN_PASSWORD_LENGT
 
     Length carries most of the strength, so it is the rule with a number behind
     it; the character classes only rule out the passwords that are long and
-    still trivial -- ``aaaaaaaaaaaa`` and ``000000000000``.
+    still trivial: ``aaaaaaaaaaaa`` and ``000000000000``.
     """
     if len(password) < min_length:
         raise WeakPassword(f"Password must be at least {min_length} characters long")

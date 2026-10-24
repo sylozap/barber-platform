@@ -1,20 +1,7 @@
-"""Payloads ``notification`` writes to the dead letter topics.
+"""Payload ``notification`` publishes to ``<topic>.dlq`` for a notification it gave up on.
 
-A notification the delivery worker gave up on is published to ``<topic>.dlq``
-of the event that caused it, so the review of ``booking.bookings.v1.dlq`` finds
-the messages the platform failed to send next to the events it failed to handle.
-
-It goes through the outbox, unlike a dead letter of the consumer runner, because
-here there is a state change to be atomic with: the notification turning
-``failed``. A pod that died between the two would lose the record otherwise.
-
-The relay wraps it in an envelope of its own, so the original envelope is not
-kept; ``original_event_id`` -- also the ``causation_id`` of the envelope -- is
-how the review finds it. The ``dlq_*`` fields are named as in a dead letter of
-the runner, so both read the same way.
-
-The fields of the template are left out on purpose: a confirmation letter holds
-a one-time token in them, and a dead letter topic is read by people.
+Goes through the outbox so it is atomic with marking the notification ``failed``. Template
+fields are omitted because they may contain one-time tokens.
 """
 
 from __future__ import annotations

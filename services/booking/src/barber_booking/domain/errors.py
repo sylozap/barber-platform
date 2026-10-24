@@ -1,9 +1,4 @@
-"""Failures the booking service can report.
-
-Each error carries its domain ``code``, and the chassis handler turns it into
-``problem+json``. This is the one module of the domain that imports the
-chassis, and only for the error base.
-"""
+"""Domain errors of booking, each with its own ``code``."""
 
 from __future__ import annotations
 
@@ -148,7 +143,7 @@ class BookingNotStarted(DomainError):
 class BookingStatusConflict(DomainError):
     """The booking is in a state this operation cannot leave.
 
-    ``409``: the request itself is well formed, the booking has moved on --
+    ``409``: the request itself is well formed, the booking has moved on:
     a completed visit cannot be cancelled, a cancelled one cannot be completed.
     """
 

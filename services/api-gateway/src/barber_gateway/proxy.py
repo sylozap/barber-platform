@@ -1,30 +1,8 @@
-"""Forwarding a request to the service behind the gateway, untouched.
+"""Streaming proxy to the upstream services.
 
-The gateway does not read what it carries. The body of a request goes to the
-service as it arrives, and the body of the answer comes back chunk by chunk as
-the service sends it: an answer of a hundred megabytes costs the gateway one
-chunk of memory, not a hundred megabytes, and the first byte reaches the client
-before the last one has left the service. ``aiter_raw`` rather than
-``aiter_bytes`` -- a compressed answer stays compressed, so ``Content-Length``
-and ``Content-Encoding`` of the service remain true.
-
-Not :class:`~barber_common.http.ServiceClient`, deliberately. That client reads
-the answer whole and turns an error status into an exception, which is right
-for a caller that wants a contract and wrong for a proxy that must hand back
-exactly what the service said. What is kept from it is the circuit breaker, one per service.
-
-Nothing is retried. A ``POST`` that timed out may have created a booking, and
-only the client knows whether sending it again is what it wants.
-
-Failures before the answer starts are the platform's own ``problem+json``:
-
-* the service took the request and did not answer in time -- ``504
-  upstream_timeout``;
-* it could not be reached, or its breaker is open -- ``503
-  upstream_unavailable``.
-
-A failure after the answer started cannot change the status any more: the
-connection is cut, and the client sees a truncated body.
+Bodies are streamed both ways with ``aiter_raw``, so compressed responses keep their
+headers. Requests are never retried. Timeouts map to ``504 upstream_timeout``, connection
+errors and an open breaker to ``503 upstream_unavailable``.
 """
 
 from __future__ import annotations
@@ -162,8 +140,8 @@ class Proxy:
         breaker.record_success()
 
         response = StreamingResponse(_relay(answer, upstream), status_code=answer.status_code)
-        # Raw pairs rather than a mapping, so a repeated header -- Set-Cookie,
-        # Vary -- survives as the service sent it.
+        # Raw pairs rather than a mapping, so a repeated header (Set-Cookie,
+        # Vary) survives as the service sent it.
         response.raw_headers = _response_headers(answer)
         return response
 
@@ -237,7 +215,7 @@ def _named_by_connection(connection: str) -> frozenset[str]:
 async def _relay(answer: httpx.Response, upstream: Upstream) -> AsyncIterator[bytes]:
     """The body of the answer, chunk by chunk, as the service sends it.
 
-    The connection goes back to the pool however this ends -- finished, cut by
+    The connection goes back to the pool however this ends: finished, cut by
     the service, or abandoned by a client that went away.
     """
     try:

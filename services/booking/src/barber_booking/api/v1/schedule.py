@@ -1,8 +1,4 @@
-"""A master's working time: the weekly template, its exceptions, the buffer.
-
-Open to a `super_admin`, to a `salon_admin` of the master's salon and to the
-master themselves. Times are the salon's local wall-clock time.
-"""
+"""Master schedule endpoints: weekly template, exceptions, buffer. Times are salon-local."""
 
 from __future__ import annotations
 
@@ -63,15 +59,10 @@ async def replace_weekly_schedule(
     caller: ScheduleManager,
     scenario: ReplaceWeeklyScheduleScenario,
 ) -> WeeklyScheduleResponse:
-    """Put a new weekly template in force from `valid_from` (today by default).
+    """Replace the weekly template from `valid_from` (today by default).
 
-    The body is the whole week: what is absent is not worked. The version in
-    force is closed the day before `valid_from`, versions planned after it are
-    dropped, and exceptions of single dates are left as they are.
-
-    **Existing bookings are not cancelled**, even when the new hours leave them
-    outside working time. The administrator sees the conflict and settles it
-    with the client.
+    Days missing from the body are days off. Later planned versions are dropped, single-date
+    exceptions are kept. Existing bookings are not cancelled.
     """
     return await scenario.execute(caller=caller, master_id=MasterId(master_id), body=body)
 

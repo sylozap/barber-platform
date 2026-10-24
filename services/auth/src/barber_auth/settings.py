@@ -102,9 +102,9 @@ class AuthSettings(BaseAppSettings):
     # is created at startup with a confirmed address and the role; on later
     # starts the role is ensured and nothing else is touched. All three or
     # none: without them no administrator is created.
-    # EmailStr, as the login form checks it: an address that form refuses --
-    # a reserved name such as .local -- would be an administrator nobody can
-    # sign in as.
+    # EmailStr, as the login form checks it: an address that form refuses (a
+    # reserved name such as .local) would be an administrator nobody can sign
+    # in as.
     bootstrap_admin_email: EmailStr | None = None
     bootstrap_admin_phone: str | None = None
     bootstrap_admin_password: SecretStr | None = None

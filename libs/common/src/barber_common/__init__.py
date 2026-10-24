@@ -1,6 +1,4 @@
-"""Shared chassis for the barber platform services.
+"""Shared chassis for the platform services: config, logging, errors, DB, Kafka, health.
 
-The package carries infrastructure that at least three services need and that
-contains no domain logic: configuration, logging, errors, database access,
-health checks. Domain types live in the services themselves.
+No domain logic here; domain types live in the services.
 """

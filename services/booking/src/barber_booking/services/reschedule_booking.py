@@ -1,15 +1,7 @@
-"""Moving a booking to another time, in one transaction.
+"""Reschedule a booking by updating the same row in one transaction.
 
-Not a cancellation followed by a new booking. The same row is updated, so the
-booking keeps its identity and its history, and if the new time is lost to
-somebody else the transaction rolls back whole: the client still holds the old
-time, as if they had never asked.
-
-The order is the one of creating a booking. The booking is read and the move
-checked first, so a request that may not be made never reaches ``catalog``.
-``catalog`` is asked outside any transaction. Everything after it -- the lock,
-the schedule, the update, the event -- is one transaction, and the exclusion
-constraint judges the new time at the moment of the update.
+Permission checks run first, ``catalog`` is called outside the transaction, and the
+exclusion constraint validates the new time on update.
 """
 
 from __future__ import annotations

@@ -1,8 +1,4 @@
-"""Who a master is, for another service.
-
-Not cached: ``booking`` asks only for a master whose ``master.created`` it
-never received, once, and keeps the answer.
-"""
+"""Master profile for other services. Not cached; ``booking`` reads it rarely."""
 
 from __future__ import annotations
 

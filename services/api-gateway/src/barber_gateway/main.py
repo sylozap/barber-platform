@@ -1,8 +1,4 @@
-"""Entry point of the api-gateway service.
-
-Single entry point: it verifies the JWT, limits the rate, stamps the
-correlation id and proxies to the services behind it.
-"""
+"""Entry point of the api-gateway service."""
 
 from __future__ import annotations
 

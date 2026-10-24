@@ -1,17 +1,7 @@
-"""The internal endpoints of ``catalog``, as booking calls them.
+"""Client for the internal ``catalog`` endpoints.
 
-One call answers everything availability and a new booking need about one
-master offering one service. Another describes a master, for the rare master
-whose ``master.created`` never arrived. The answers are the shared contracts,
-so a change of their shape breaks the type check here rather than a request at
-runtime.
-
-Failures come back in domain terms. A ``404`` of an offering means there is
-nothing to book and becomes ``service_not_offered``; a ``404`` of a master is
-``not_found``; a catalog that does not answer, or a breaker
-that is open, is ``503 upstream_unavailable``. A deactivated master is not a
-failure: it arrives as ``master_active`` false, and the caller decides what that
-means for it.
+``404`` for an offering maps to ``service_not_offered``, for a master to ``not_found``; an
+unreachable catalog or open breaker to ``503 upstream_unavailable``.
 """
 
 from __future__ import annotations

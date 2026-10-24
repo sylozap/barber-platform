@@ -24,21 +24,9 @@ def _sql_list(values: tuple[str, ...]) -> str:
 class Notification(Base):
     """One message to one user on one channel.
 
-    Written ``pending`` by a consumer, in the transaction that marks the event
-    processed; sent later by the delivery worker, outside any transaction.
-    ``dedup_key`` is ``{event_id}:{channel}``, and its uniqueness is what keeps
-    an event delivered twice from becoming two messages.
-
-    ``payload`` holds the fields the template is rendered with, not the text:
-    the address and the text are resolved when the message is sent. The one
-    exception is ``address``, set when the event names it -- a confirmation
-    letter goes to the address being confirmed. ``topic`` is where the event
-    came from: a notification given up on goes to the dead letter topic of it.
-    ``next_attempt_at`` is when the worker may take the row: now for a new one,
-    later for a retry, and the end of the lease for one being sent.
-    ``traceparent`` and ``correlation_id`` are those of the event being handled
-    when the row was queued: the send happens later, in the worker, and
-    continues that trace and that correlation instead of starting its own.
+    Created ``pending`` by a consumer and sent later by the delivery worker. The unique
+    ``dedup_key`` (``{event_id}:{channel}``) prevents duplicate messages. ``payload`` holds
+    template fields; ``traceparent`` and ``correlation_id`` let the send continue the trace.
     """
 
     __tablename__ = "notifications"

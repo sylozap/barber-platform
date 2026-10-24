@@ -1,9 +1,4 @@
-"""Error model of the platform: RFC 9457 ``application/problem+json``.
-
-Every failure is returned in the same shape, with a domain ``code`` and the
-``correlation_id`` of the request. Services raise :class:`DomainError`
-subclasses, and the ``api`` layer turns them into responses.
-"""
+"""Error model of the platform: RFC 9457 ``application/problem+json`` with a domain ``code``."""
 
 from __future__ import annotations
 
@@ -48,27 +43,18 @@ PROBLEM_CONTENT_TYPE = "application/problem+json"
 PROBLEM_SCHEMA_NAME = "Problem"
 ERROR_TYPE_BASE = "https://barber.local/errors/"
 
-# What FastAPI documents a 422 with. The body is never that -- it is a
-# problem+json -- so the schemas go once nothing refers to them any more.
+# What FastAPI documents a 422 with. The body is never that (it is a
+# problem+json), so the schemas go once nothing refers to them any more.
 _FASTAPI_ERROR_SCHEMAS = ("HTTPValidationError", "ValidationError")
 
 _logger = get_logger(__name__)
 
 
 class DomainError(Exception):
-    """Base class of every expected failure.
+    """Base class of expected failures; subclasses set ``code``, ``http_status`` and ``title``.
 
-    Subclasses declare their code and HTTP status as class attributes::
-
-        class SlotAlreadyTaken(DomainError):
-            code = "slot_taken"
-            http_status = 409
-            title = "Slot is already taken"
-
-    ``extra`` carries the fields specific to one error, such as the alternative
-    slots offered together with ``slot_taken``. ``headers`` go on the response
-    beside the body, for what HTTP says in a header rather than in a document:
-    ``Retry-After`` of a ``429``.
+    ``extra`` adds fields to the problem body, ``headers`` go on the response (e.g.
+    ``Retry-After``).
     """
 
     code: ClassVar[str] = "internal_error"
@@ -324,7 +310,7 @@ async def _overloaded_handler(request: Request, exc: Exception) -> Response:
     """No connection of the pool came free in time: the service is saturated.
 
     A 500 would say the request is broken and alert as a bug; it is not, and
-    the same request a moment later succeeds -- which is what 503 with
+    the same request a moment later succeeds; which is what 503 with
     Retry-After tells a client.
     """
     detail = "The service is busy, try again shortly"
@@ -378,7 +364,7 @@ class Problem(BaseModel):
     """The body of every error, as the OpenAPI document describes it.
 
     Only for the document: responses are built by :func:`problem_document`.
-    Further fields are allowed, because an error carries its own --
+    Further fields are allowed, because an error carries its own:
     ``alternatives`` of ``slot_taken``, ``violations`` of ``validation_error``.
     """
 
@@ -406,15 +392,9 @@ def problem_response(description: str) -> dict[str, object]:
 
 
 def describe_problem_responses(document: dict[str, object]) -> None:
-    """Make every error response of an OpenAPI document say what it returns.
+    """Document every 4xx/5xx response of an OpenAPI schema as ``problem+json``.
 
-    FastAPI documents a ``422`` with its own ``HTTPValidationError`` as
-    ``application/json``, and an error declared by ``responses=`` with no body
-    at all. Neither is what leaves the service. Every ``4xx`` and ``5xx``
-    becomes a ``problem+json`` of :class:`Problem`, keeping its description.
-
-    An operation with a body also documents ``400``: FastAPI answers it, not
-    ``422``, to a body it cannot even decode -- bytes that are not UTF-8.
+    Operations with a body also get ``400``, which FastAPI returns for undecodable bodies.
     """
     for operation in _operations(document):
         responses = operation.get("responses")

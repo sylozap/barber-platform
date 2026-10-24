@@ -1,9 +1,5 @@
-"""Which services a master offers, and on what terms.
-
-``PUT`` sets the whole terms of one link and ``DELETE`` withdraws it; both are
-idempotent. A master may only offer services of their own salon, otherwise the
-answer is ``422``. Withdrawing sets a flag and keeps the overrides. Both
-operations publish ``master.updated``, keyed by the master.
+"""Master offerings: ``PUT`` sets a link, ``DELETE`` withdraws it. Both publish
+``master.updated``.
 """
 
 from __future__ import annotations
@@ -120,9 +116,8 @@ class LinkMasterService:
 
             link.price_override = body.price_override
             link.duration_override = body.duration_override
-            # A link that was withdrawn and is being stated again is active
-            # again. The alternative -- refusing until it is deleted for real
-            # -- would make PUT stop being a statement of the desired state.
+            # Re-stating a withdrawn link reactivates it, so PUT always sets the
+            # desired state.
             link.is_active = True
             await self._session.flush()
 

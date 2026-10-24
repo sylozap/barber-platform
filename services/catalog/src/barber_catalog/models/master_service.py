@@ -20,14 +20,9 @@ __all__ = ["MasterService"]
 
 
 class MasterService(Base):
-    """The link between one master and one service of their salon.
+    """Link between a master and a service of their salon, with optional overrides.
 
-    Price and duration overrides are optional and independent; final figures
-    are computed in :mod:`barber_catalog.domain.pricing`.
-
-    Unlinking sets ``is_active`` to false instead of deleting the row, so the
-    overrides are kept. Reads treat an inactive link as missing. The foreign key
-    to ``services`` has no cascade, since services are never deleted.
+    Unlinking sets ``is_active`` to false so the overrides are kept.
     """
 
     __tablename__ = "master_services"

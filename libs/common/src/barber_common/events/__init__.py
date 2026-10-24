@@ -1,9 +1,4 @@
-"""Schemas of the asynchronous messages of the platform.
-
-One source of truth for the producer and the consumer: a payload that stops
-matching is caught by mypy on both sides rather than at three in the morning
-in a consumer log.
-"""
+"""Event payload schemas shared by producers and consumers."""
 
 from barber_common.events.bookings import (
     BOOKING_AGGREGATE_TYPE,

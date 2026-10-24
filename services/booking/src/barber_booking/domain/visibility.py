@@ -1,9 +1,4 @@
-"""Which bookings a caller may see, and what they asked to narrow them to.
-
-The scope is not a filter a caller chooses: it is who they are. Every query of
-bookings takes one, and it is applied in SQL, so a page is never cut short by
-rows thrown away after the fetch.
-"""
+"""Booking visibility scope of a caller, applied in SQL."""
 
 from __future__ import annotations
 

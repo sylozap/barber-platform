@@ -1,9 +1,6 @@
-"""A weekly schedule, its exceptions, and the working time of one date.
+"""Weekly schedules and exceptions, converted from salon-local time to instants.
 
-Everything is written in the salon's local time and unfolded here into real
-instants. A local time that the clocks skip or repeat is read the way
-PostgreSQL's ``AT TIME ZONE`` reads it, so this module and the availability
-query agree on every date of the year.
+DST gaps and overlaps are resolved like PostgreSQL's ``AT TIME ZONE``.
 """
 
 from __future__ import annotations
@@ -103,7 +100,7 @@ def local_to_utc(day: date, at: time, zone: ZoneInfo) -> datetime:
     """The instant a wall-clock time of the salon names.
 
     A time the clocks skip is read with the offset in force before the jump,
-    and a time they repeat as its later occurrence -- both as PostgreSQL does.
+    and a time they repeat as its later occurrence: both as PostgreSQL does.
     """
     naive = datetime.combine(day, at)
     earlier = naive.replace(tzinfo=zone, fold=0)
@@ -121,15 +118,10 @@ def working_intervals(
     exceptions: Sequence[ScheduleException],
     zone: ZoneInfo,
 ) -> list[TimeRange]:
-    """The real time a master works on one date of the salon's calendar.
+    """Working intervals of a master on a salon-calendar date.
 
-    A day off leaves nothing. Custom hours replace the template for the date.
-    Breaks are cut out of whatever hours remain. Of the template lines in force
-    on the date, the latest version -- the greatest ``valid_from`` -- wins.
-
-    Intervals that touch are one shift: 10:00-14:00 followed by 14:00-18:00 is
-    a working day without a pause in it, and the grid of slots runs through the
-    seam rather than starting again at it.
+    Days off and custom hours override the template, breaks are cut out, and adjacent
+    intervals are merged so the slot grid runs through them.
     """
     todays = [exception for exception in exceptions if exception.effective_on == day]
     if any(exception.kind is ExceptionKind.DAY_OFF for exception in todays):

@@ -1,30 +1,11 @@
-"""Sending what the consumers queued.
+"""Delivery worker.
 
-A pass has three steps, and only the middle one talks to the outside world:
+1. Claim due notifications (``SKIP LOCKED``) and mark them ``sending`` with a lease.
+2. Render and send without an open transaction.
+3. Record the result per notification: ``sent``, retry, or ``failed`` plus a DLQ record via
+   the outbox.
 
-1. a transaction claims a batch of due notifications (``SKIP LOCKED``, so two
-   replicas take different rows), marks them ``sending`` with a lease, and
-   reads where each recipient can be reached now;
-2. with no transaction open, each message is rendered and handed to the
-   provider of its channel;
-3. a transaction per notification records the outcome: ``sent``, a retry
-   later, or ``failed`` -- and with ``failed``, a record for the dead letter
-   topic of the event behind it, written to the outbox in that transaction.
-
-A pod that dies between 2 and 3 leaves its rows ``sending``; when the lease
-runs out another pass takes them again. The message may then go out twice --
-the one duplicate at-least-once delivery allows -- but it is never lost. A
-redelivered *event* never makes a second message: the dedup key refused it
-when it was queued.
-
-The record goes through the outbox rather than straight to the broker: a pod
-dying between marking the row ``failed`` and publishing would lose it, and a
-failed row is never taken again.
-
-Steps 2 and 3 run in the trace and with the correlation id of the event behind
-the notification, stored with the row when it was queued. The ``send`` span is
-a child of the consumer that queued it, so a trace runs from the request to
-the message leaving; every attempt is a span of its own in that trace.
+If a pod dies before step 3 the lease expires and the message is retried (at-least-once).
 """
 
 from __future__ import annotations

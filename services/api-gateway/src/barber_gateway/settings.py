@@ -30,7 +30,7 @@ class GatewaySettings(BaseAppSettings):
     # The connect deadline is short: a service that does not accept a
     # connection within a second is not there. The read deadline is per chunk
     # of the answer, not for the whole of it, and covers the slowest endpoint
-    # of the platform -- availability over two weeks with a cold cache.
+    # of the platform: availability over two weeks with a cold cache.
     proxy_connect_timeout_seconds: float = 1.0
     proxy_read_timeout_seconds: float = 10.0
     proxy_write_timeout_seconds: float = 10.0

@@ -1,9 +1,4 @@
-"""What a client is told about their booking: a template and its fields.
-
-Pure functions of the event. Times are shown in the salon's zone, which the
-event carries; an event without one -- published before the zone was part of
-it -- is shown in UTC and says so, rather than in a zone that may be wrong.
-"""
+"""Builds the template fields for booking messages. Times are shown in the salon's time zone."""
 
 from __future__ import annotations
 

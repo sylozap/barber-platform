@@ -1,14 +1,7 @@
 """Circuit breaker for calls to another service.
 
-Without it, a service that is down costs every caller a full timeout per
-request. The threads pile up, the pool of the caller runs out, and an outage of
-one service becomes an outage of three. The breaker turns that into an
-immediate failure, which the caller can answer with a fallback or a 503.
-
-Three states, the usual ones. Closed lets calls through and counts failures.
-After ``failure_threshold`` in a row it opens and rejects everything for
-``reset_timeout_seconds``. Then it half-opens and lets a single call through:
-success closes it, failure opens it again.
+Opens after ``failure_threshold`` consecutive failures, rejects calls for
+``reset_timeout_seconds``, then lets one trial call through.
 """
 
 from __future__ import annotations

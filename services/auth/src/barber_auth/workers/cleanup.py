@@ -1,9 +1,6 @@
-"""Background cleanup of expired rows.
+"""Deletes expired refresh tokens, email confirmations and processed events in batches.
 
-Prunes refresh tokens, email confirmations and processed events. Rows are
-deleted only after they expire plus a retention window, never by state, so a
-revoked refresh token still detects reuse and a spent confirmation link still
-reports as used. Deletion runs in bounded batches.
+Rows are kept for a retention window after expiry, so token reuse is still detected.
 """
 
 from __future__ import annotations

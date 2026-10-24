@@ -1,19 +1,4 @@
-"""Contracts of the catalog endpoints other services call.
-
-``GET /internal/v1/masters/{id}/services/{sid}`` returns in one call whether the
-master is active, the price and duration for this master, a snapshot of the
-service name, and the salon time zone with its booking policies.
-
-``GET /internal/v1/masters/{id}`` returns who a master is: the account behind
-the profile, the salon and its time zone. ``booking`` reads it only for a master
-whose ``master.created`` it never received.
-
-The schemas are imported by both ``catalog`` and ``booking``.
-
-``GET /api/v1/masters/{id}`` is public, and the gateway calls it for the card
-of a master; :class:`MasterCardResponse` is what it answers, and catalog builds
-its answer from the same class.
-"""
+"""Contracts of the catalog endpoints called by ``booking`` and the gateway."""
 
 from __future__ import annotations
 
@@ -73,7 +58,7 @@ class MasterServiceDetails(BaseModel):
     # service later does not change past bookings.
     service_name: str
 
-    # Already resolved -- this master's override where there is one, the
+    # Already resolved: this master's override where there is one, the
     # salon's base figure otherwise. booking never sees the two halves and
     # never re-implements the choice between them.
     duration_min: int

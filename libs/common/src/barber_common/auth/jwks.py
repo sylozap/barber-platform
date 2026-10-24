@@ -1,11 +1,6 @@
-"""JWKS client that caches the public keys of ``auth`` and keeps them fresh.
+"""JWKS client: caches the public keys of ``auth`` and refreshes them.
 
-* A failed refresh keeps the keys already loaded, so the service keeps working
-  while ``auth`` is down.
-* Keys are refreshed on a timer, and an unknown ``kid`` triggers an immediate
-  fetch, so a key rotation needs no restart.
-* Forced refreshes are rate limited and serialised, so a burst of tokens with
-  an unknown ``kid`` costs one request to ``auth``.
+Keeps old keys if a refresh fails; an unknown ``kid`` triggers a rate-limited refetch.
 """
 
 from __future__ import annotations
@@ -87,9 +82,8 @@ class JwksClient:
     async def refresh(self) -> None:
         """Fetch the document, keeping the old keys if the fetch fails.
 
-        Never raises. A caller cannot do anything useful with the failure --
-        the alternative to stale keys is no keys -- so the failure is logged,
-        the metrics show the cache ageing, and verification carries on.
+        Never raises: the alternative to stale keys is no keys. The failure is
+        logged, the metrics show the cache ageing, and verification carries on.
         """
         async with self._lock:
             # Another task may have refreshed while this one waited for the
@@ -195,18 +189,9 @@ async def refreshing(client: JwksClient) -> AsyncIterator[JwksClient]:
 
 
 def jwks_verifier(settings: BaseAppSettings) -> tuple[JwksClient, TokenVerifier]:
-    """Build the pair a service needs to check the tokens it receives.
+    """Build the JWKS client and the verifier on top of it.
 
-    Returns both because the lifespan has to do two things with them: keep the
-    client refreshing, and hand the verifier to the dependencies::
-
-        client, verifier = jwks_verifier(settings)
-        async with refreshing(client):
-            use_authentication(app, verifier)
-            yield
-
-    ``auth`` does not use this. It signs the tokens, so it already has the key
-    and builds a verifier over ``StaticKeys`` instead of fetching from itself.
+    ``auth`` itself does not use this: it already has the key and uses ``StaticKeys``.
     """
     if settings.jwks_url is None:
         raise ConfigurationError(

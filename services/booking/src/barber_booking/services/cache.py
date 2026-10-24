@@ -1,16 +1,7 @@
-"""What booking caches, and what makes a cached answer stop counting.
+"""Cache keys of booking.
 
-Every key carries the generations of the master and of the service it
-describes. An event about either increments its generation, and every key
-written under the old one becomes unreachable at once: one ``INCR``, nothing to
-enumerate, nothing to scan. ``service.updated`` names no master, so a delete of
-exact keys would first have to find every master offering the service; the
-service's own counter needs no such search.
-
-Every key that depends on a master or a service -- cached availability
-included -- has to carry its generation, or events will not reach it. Keys
-live under ``booking:`` so they never meet the keys of ``catalog`` in a shared
-Redis. What is left behind under an old generation expires by TTL.
+Each key includes the generation of its master and service; bumping a generation invalidates
+all dependent keys at once. Old keys expire by TTL.
 """
 
 from __future__ import annotations
@@ -44,8 +35,8 @@ class BookingCache:
     async def read[ModelT: BaseModel](self, key: str, model: type[ModelT]) -> ModelT | None:
         """Return a cached document, or nothing.
 
-        A document that no longer parses -- written by a release with another
-        schema -- is a miss.
+        A document that no longer parses (written by a release with another
+        schema) is a miss.
         """
         raw = await self._cache.get(key)
         if raw is None:

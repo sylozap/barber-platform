@@ -1,9 +1,4 @@
-"""Public halves of the signing keys.
-
-The table has exactly two queries: register the key this process signs with,
-and list everything JWKS should publish. Nothing here ever sees a private key
--- that one lives in the signer and in the Secret it was loaded from.
-"""
+"""Public halves of the signing keys."""
 
 from __future__ import annotations
 
@@ -25,16 +20,9 @@ class SigningKeyRepository:
         self._session = session
 
     async def register_active(self, *, kid: str, public_pem: str) -> None:
-        """Record this key as active, doing nothing if it is already there.
+        """Register this key as active with ``ON CONFLICT DO NOTHING``.
 
-        ``ON CONFLICT DO NOTHING`` rather than a read followed by an insert:
-        several replicas start at the same time and hold the same key, so two
-        of them race on the same ``kid``, and the loser of that race should
-        carry on rather than crash the pod.
-
-        A key that an operator deliberately deactivated stays deactivated: the
-        conflict is not an update, so restarting a pod cannot silently bring a
-        retired key back into JWKS.
+        Replicas start concurrently with the same key; a deactivated key is not reactivated.
         """
         statement = (
             insert(SigningKey)

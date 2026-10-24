@@ -1,12 +1,6 @@
-"""Machine-to-machine tokens: registering clients, and issuing to them.
+"""Service-to-service tokens: client registration and token issuing.
 
-A service calling another service is still a caller and still has to prove who
-it is. It does so with a client id and a secret, and gets back a short-lived
-token carrying scopes instead of roles.
-
-The secret is treated exactly as a password: argon2, never stored in the clear,
-never logged, and a missing client costs the same time as a wrong secret so
-that the endpoint cannot be used to find out which services exist.
+Secrets are hashed with argon2; an unknown client takes as long as a wrong secret.
 """
 
 from __future__ import annotations

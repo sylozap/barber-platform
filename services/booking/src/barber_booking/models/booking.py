@@ -1,8 +1,5 @@
-"""A booking: one client, one master, one service, one span of time.
-
-The table holds the main invariant of the platform. Two active bookings of one
-master never overlap, and the database refuses the second one with ``23P01``
-whatever path wrote it.
+"""Booking table. An exclusion constraint prevents overlapping active bookings of a master
+(``23P01``).
 """
 
 from __future__ import annotations

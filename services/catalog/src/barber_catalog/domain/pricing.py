@@ -1,9 +1,4 @@
-"""What a master actually charges, and how long they actually take.
-
-A salon sets a base price and duration for each service; a master may override
-either. The final figure is ``COALESCE(override, base)``, computed only here
-and used by both the master card and the internal endpoint.
-"""
+"""Final price and duration of a master's service: ``COALESCE(override, base)``."""
 
 from __future__ import annotations
 
@@ -39,7 +34,7 @@ class Offering:
     def price(self) -> Decimal:
         """What the client pays.
 
-        A zero override is a real price -- a service given away -- and not an
+        A zero override is a real price (a service given away) and not an
         absent one, which is why this tests against ``None`` rather than
         against falsehood.
         """

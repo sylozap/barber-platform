@@ -47,14 +47,10 @@ async def create_salon(
     caller: SuperAdministrator,
     scenario: CreateSalonScenario,
 ) -> SalonResponse:
-    """Create a salon, with the four booking policies it will be run by.
+    """Create a salon with its booking policies.
 
-    The policies -- `slot_step_min`, `booking_min_lead_min`,
-    `booking_horizon_days`, `cancel_deadline_min` -- are applied by `booking`
-    and take defaults when omitted.
-
-    `timezone` is an IANA identifier such as `Europe/Moscow`, never a UTC
-    offset.
+    `slot_step_min`, `booking_min_lead_min`, `booking_horizon_days` and
+    `cancel_deadline_min` have defaults. `timezone` is an IANA name such as `Europe/Moscow`.
     """
     return await scenario.execute(caller=caller, body=body)
 

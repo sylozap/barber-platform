@@ -52,18 +52,10 @@ async def read_master_card(
         UUID | None, Query(description="The service to show free slots for.")
     ] = None,
 ) -> MasterCard:
-    """Everything the screen of a master needs, in one request.
+    """Master profile, services and nearest free slots in one request.
 
-    **Open to anonymous callers**, like the catalog and the availability it is
-    made of. The profile and the services come from catalog, the nearest free
-    starts for `service_id` from booking; both are asked at once.
-
-    Without `service_id` there are no slots and `slots_status` is
-    `not_requested`. If booking does not answer, the card is still served:
-    the slots are empty and `slots_status` is `unavailable`, which is not the
-    same as a master with nothing free (`ok` and an empty list). If catalog
-    does not answer, there is no card: `503`.
-
-    Like availability itself, the slots are an estimate, not a reservation.
+    Public. Without `service_id` there are no slots (`slots_status: not_requested`). If
+    booking is down the card is still returned with `slots_status: unavailable`; if catalog
+    is down the answer is `503`.
     """
     return await scenario.execute(master_id=master_id, service_id=service_id)

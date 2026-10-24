@@ -1,8 +1,6 @@
-"""A booking as the rules see it, and the ways it may change.
+"""Immutable booking entity and its state transitions.
 
-Immutable: a change returns a new booking, and the scenario hands that to the
-repository. Whether the new time is free is never decided here -- that is the
-exclusion constraint's answer at the moment of the write.
+Slot conflicts are not checked here; the exclusion constraint decides on write.
 """
 
 from __future__ import annotations
@@ -142,15 +140,7 @@ class Booking:
         reminder_at: datetime | None,
         by: Actor,
     ) -> Booking:
-        """A new booking, confirmed at once, made by ``by``.
-
-        A client books for themselves. Booking for somebody else -- a client
-        who called or walked in -- is the salon's: its admin puts the visit on
-        that client's account, and ``created_by`` remembers who did.
-
-        ``pending`` exists for a prepayment step the platform does not have
-        yet, so nothing waits in it today.
-        """
+        """A new confirmed booking created by ``by`` (the client or a salon admin)."""
         if by.user_id is None:
             raise ValueError("a booking is made by somebody")
         if by.user_id != client_user_id and not by.runs_salon:
@@ -202,18 +192,11 @@ class Booking:
         return now >= self.start_at
 
     def cancel(self, *, by: Actor, now: datetime, reason: str | None = None) -> Booking:
-        """Call the visit off and free its time.
+        """Cancel the booking.
 
-        The client cancels up to ``cancel_deadline_min`` before the start; the
-        salon at any moment before it. Recorded as the client's cancellation
-        when the client does it, even if they also run the salon -- the status
-        says who changed their mind, not who had the power to.
-
-        Cancelling a cancelled booking returns it as it is: a repeated request
-        has nothing left to do, and must not look like a failure.
-
-        The master of the booking is not among those who may: a master who
-        cannot come takes a day off, and the salon decides about the clients.
+        The client may cancel until ``cancel_deadline_min`` before the start, the salon
+        until the start. Masters cannot cancel. Cancelling twice returns the booking
+        unchanged.
         """
         if not (by.is_client or by.runs_salon):
             raise NotAllowedForActor("Only the client or the salon may cancel a booking")
@@ -241,13 +224,8 @@ class Booking:
         )
 
     def check_move(self, *, by: Actor, now: datetime, to: datetime) -> bool:
-        """Refuse a move this actor may not make now; say whether there is one to make.
-
-        The same people as for a cancellation, under the same deadline counted
-        from the current start: moving a visit is calling off its time. A
-        booking already at ``to`` has nothing to do -- a repeated request finds
-        the work done -- and that is answered before the deadline, which the
-        move itself may have brought closer.
+        """Check that ``actor`` may move the booking now; return False if it's already at
+        ``to``.
         """
         if not (by.is_client or by.runs_salon):
             raise NotAllowedForActor("Only the client or the salon may move a booking")
@@ -275,7 +253,7 @@ class Booking:
     ) -> Booking:
         """The same booking at another time.
 
-        The service keeps its snapshot -- name, price and duration are what the
+        The service keeps its snapshot: name, price and duration are what the
         client bought. The buffer is the master's current one, because it is
         the master's time it protects. The reminder is due anew, even if the
         old one was already sent.

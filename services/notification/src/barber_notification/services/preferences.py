@@ -1,9 +1,4 @@
-"""Reading and changing a user's notification switches.
-
-Their own only: the user is the subject of the token, never a parameter. A user
-this service has not heard of yet -- the events of auth may be late -- reads
-the defaults, and a change creates the row the events will fill in later.
-"""
+"""Read and update the caller's notification preferences; unknown users get the defaults."""
 
 from __future__ import annotations
 

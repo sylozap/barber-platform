@@ -1,8 +1,4 @@
-"""Cutting working time into the starts a client may book.
-
-The reference implementation. The availability query does the same in SQL on
-the hot path, and a reconciliation test holds the two to the same answers.
-"""
+"""Reference slot calculation; the SQL version is checked against it in tests."""
 
 from __future__ import annotations
 

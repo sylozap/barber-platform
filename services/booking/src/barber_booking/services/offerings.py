@@ -1,8 +1,4 @@
-"""Reading what a master offers, through the cache.
-
-The hot path: availability asks this before every calculation. A miss, or a
-cache that is down, goes to ``catalog`` and answers the same way.
-"""
+"""Cached lookup of what a master offers; falls back to ``catalog``."""
 
 from __future__ import annotations
 

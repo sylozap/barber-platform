@@ -1,9 +1,4 @@
-"""Granting and revoking roles.
-
-A ``super_admin`` grants any role. A ``salon_admin`` grants ``master``, and only
-in a salon they administer. ``client`` is never granted here. A change reaches
-the user's access token on their next refresh, and no event is published.
-"""
+"""Granting and revoking roles. No event is published."""
 
 from __future__ import annotations
 

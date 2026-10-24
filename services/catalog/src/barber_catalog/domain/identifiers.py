@@ -1,8 +1,4 @@
-"""Identifiers of the service, distinct at the type level.
-
-``NewType`` wrappers over UUID, so mypy rejects identifiers passed in the wrong
-order.
-"""
+"""Typed ``NewType`` identifiers over UUID."""
 
 from __future__ import annotations
 

@@ -1,29 +1,9 @@
-"""One OpenAPI document for the whole platform, served by the gateway.
+"""Merged OpenAPI document of the platform.
 
-The services describe themselves; the gateway puts the descriptions together
-and adds what only it knows.
-
-* **Paths** are taken as the services publish them -- they already carry
-  ``/api/v1`` -- minus ``/internal/*``, which is not reachable through the
-  gateway. The same method on the same path in two services is a conflict and
-  fails the merge rather than letting one of them win quietly.
-* **Tags** are prefixed with the service, ``catalog · masters``, so the
-  endpoints group by owner.
-* **Schemas** of the same name are kept once when they are the same, and
-  renamed to ``<service>.<Name>`` when they differ, with every ``$ref`` of that
-  service following the rename. Most shared names come from the chassis or the
-  contracts and are the same.
-* **Responses the gateway itself produces** are added to every operation
-  that does not declare them already: ``429`` (with ``Retry-After``), ``503``
-  and ``504`` everywhere, ``401`` wherever the gateway demands a token. They
-  are the gateway's to document, because a service never sends them on its own
-  behalf in a way the gateway passes through unchanged.
-
-The document is collected on the first request for it and cached, not built
-at startup: the gateway may start before the services it describes, and a
-document missing a service is worse than one collected a minute later. A
-document that came out incomplete is served -- it says which services are
-missing -- but not cached, so the next request tries again.
+Paths come from the services (``/internal/*`` excluded, conflicts fail the merge), tags are
+prefixed with the service name, clashing schemas are renamed to ``<service>.<Name>``, and
+gateway responses (401, 429, 503, 504) are added. Built lazily on first request; an
+incomplete document is served but not cached.
 """
 
 from __future__ import annotations

@@ -1,13 +1,6 @@
-"""Keyset (cursor) pagination for listings.
+"""Keyset pagination with opaque base64url cursors.
 
-Offsets are not used: rows inserted or deleted between page requests would make
-an offset skip or repeat entries. A cursor names the last row seen instead::
-
-    ORDER BY name, id
-    WHERE (name, id) > ('Barber One', '0192f3c1-...')
-
-Every ordering ends in the primary key so the sort key is unique, and the
-comparison is a row value. The cursor is an opaque base64url string.
+Every ordering ends with the primary key, so the cursor is unique.
 """
 
 from __future__ import annotations
@@ -163,7 +156,7 @@ class Page[ItemT](BaseModel):
     ) -> Page[ItemT]:
         """Cut a fetched window down to a page and name the next position.
 
-        ``rows`` is what :meth:`PageRequest.window` asked for -- one more than
+        ``rows`` is what :meth:`PageRequest.window` asked for: one more than
         the caller wants. If it arrived, there is another page and the cursor
         points at the last row of this one; if it did not, this is the end.
         """

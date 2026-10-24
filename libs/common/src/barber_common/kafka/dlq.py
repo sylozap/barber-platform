@@ -1,17 +1,7 @@
-"""The dead letter queue: where a message goes when handling it cannot work.
+"""Dead letter queue.
 
-Two failures end up here and they are not the same. A message that does not
-parse is hopeless: a retry runs the same code over the same bytes and fails the
-same way, so it goes to the DLQ at once. A handler that failed on a database
-that was down is worth retrying, and only after the attempts are spent does the
-message go to the DLQ.
-
-Either way the offset is committed. A poison message that stops the partition
-takes every later message with it, which turns one broken event into an outage
-of the whole topic.
-
-The message keeps its original envelope and gains the fields that say what
-happened, so the manual review has the payload and the reason in one place.
+Unparseable messages go there immediately, handler failures after the retries. The offset is
+committed either way, so one bad message does not block the partition.
 """
 
 from __future__ import annotations
@@ -76,8 +66,8 @@ def dlq_topic_of(topic: str) -> str:
 class DeadLetter:
     """One message that could not be handled, with the reason why.
 
-    ``reason`` is a short class of failure -- ``invalid_message``,
-    ``handler_failed`` -- and is a metric label, so it stays a fixed set of
+    ``reason`` is a short class of failure (``invalid_message``,
+    ``handler_failed``) and is a metric label, so it stays a fixed set of
     values. The unbounded description belongs in ``detail``.
     """
 
@@ -92,13 +82,9 @@ class DeadLetter:
 
 
 class DeadLetterPublisher:
-    """Sends the messages a consumer gave up on.
+    """Publishes dead letters directly to Kafka.
 
-    It talks to the broker directly instead of going through the outbox, and
-    that is not the exception the outbox rule forbids: a dead letter is not a
-    domain event of this service. It carries no state change, nothing is
-    atomic with it, and it exists precisely because the transaction that would
-    have owned it never happened.
+    Not via the outbox: a dead letter carries no state change to be atomic with.
     """
 
     def __init__(
@@ -170,8 +156,8 @@ class DeadLetterPublisher:
 def _build_body(letter: DeadLetter) -> bytes:
     """Add the diagnosis to the original envelope.
 
-    When the envelope does not parse -- the reason the message is here in the
-    first half of the cases -- the raw bytes are kept as text instead, because
+    When the envelope does not parse (the reason the message is here in the
+    first half of the cases) the raw bytes are kept as text instead, because
     a review with no payload has nothing to review.
     """
     document: dict[str, object] = {

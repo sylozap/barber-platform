@@ -1,9 +1,4 @@
-"""The envelope every event travels in.
-
-The envelope is fixed; only payloads evolve. It is generic in its payload, so
-``EventEnvelope[BookingCreated]`` is checked by mypy on both the producer and
-the consumer side.
-"""
+"""Event envelope, generic in its payload so mypy checks both sides."""
 
 from __future__ import annotations
 

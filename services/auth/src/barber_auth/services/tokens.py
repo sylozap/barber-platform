@@ -1,13 +1,6 @@
-"""Issuing, rotating and revoking token pairs.
+"""Login, refresh rotation and logout.
 
-* Login checks the password and a confirmed address, issues an access token
-  and opens a new refresh token family.
-* Refresh exchanges a live refresh token for a new pair under a row lock. A
-  token that was already exchanged revokes its whole family.
-* Logout revokes one family or every family of a user; issued access tokens
-  keep working until they expire.
-
-None of them publishes an event.
+Refresh runs under a row lock; reusing an already rotated token revokes its whole family.
 """
 
 from __future__ import annotations
@@ -324,7 +317,7 @@ class RefreshTokenPair:
             now=rotated_at,
         ):
             # Expired, not stolen. The session ended on its own and the rest of
-            # the family -- there is none -- is left alone.
+            # the family (there is none) is left alone.
             return None
 
         user = await self._users.get_by_id(UserId(stored.user_id))

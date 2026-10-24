@@ -1,14 +1,7 @@
-"""Keeping the recipients in step with the accounts in auth.
+"""Keeps recipients in sync with ``auth.users.v1``, tolerating out-of-order events.
 
-``auth.users.v1`` is keyed by user, so its events arrive in order as long as
-the relay publishes them in order -- which two relay replicas do not promise.
-Every rule here therefore survives a late, older event:
-
-* a contact snapshot applies only if it was taken after the one applied last;
-* a confirmation counts only for the address it confirmed;
-* a deactivation is final, since no event brings an account back.
-
-Nothing about a person is logged beyond the user id.
+Contact snapshots apply only if newer, confirmations only for the confirmed address, and
+deactivation is final.
 """
 
 from __future__ import annotations

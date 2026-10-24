@@ -1,14 +1,7 @@
-"""Bookings, as their clients are told about them, from ``booking.bookings.v1``
-and ``booking.reminders.v1``.
+"""Queues client notifications from ``booking.bookings.v1`` and ``booking.reminders.v1``.
 
-A creation, a move and a cancellation become a message, and so does a reminder
-the scheduler of booking published when its time came. A visit closed as
-completed or missed does not: the client was there, or chose not to be, and
-has nothing to learn. Those types have no handler, and the runner logs and
-commits them.
-
-Each handler only queues: it runs in the runner's transaction, together with
-the row that marks the event processed, and the delivery worker sends later.
+Created, rescheduled, cancelled and reminder events produce a message; closed visits don't.
+Handlers only queue; the delivery worker sends.
 """
 
 from __future__ import annotations

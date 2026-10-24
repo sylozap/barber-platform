@@ -1,8 +1,6 @@
-"""Every path the gateway does not answer itself goes to a service.
+"""Catch-all routes that proxy everything else to the services.
 
-Two catch-all routes rather than one: ``/{path:path}`` would also swallow the
-routes the chassis registers after this router -- ``/metrics`` among them --
-which belong to the gateway itself.
+Two routes instead of ``/{path:path}`` so ``/metrics`` and other chassis routes still match.
 """
 
 from __future__ import annotations

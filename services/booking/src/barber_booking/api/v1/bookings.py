@@ -1,9 +1,6 @@
-"""Bookings: creating one, and everything that happens to it afterwards.
+"""Booking endpoints: create, list, cancel, reschedule, close.
 
-Creation is the only endpoint of the platform that demands
-``Idempotency-Key``: a client that retries after a lost connection must not
-end up with two appointments. The operations on an existing booking are
-idempotent by its state -- repeating one finds the work already done.
+Create requires ``Idempotency-Key``; the other operations are idempotent by state.
 """
 
 from __future__ import annotations
@@ -82,31 +79,17 @@ async def create_booking(
     request: RequiredIdempotencyKey,
     scenario: CreateBookingScenario,
 ) -> BookingResponse:
-    """Create a booking and confirm it at once.
+    """Create a confirmed booking.
 
-    The booking is the caller's own, unless `client_user_id` names another
-    account: a `salon_admin` of the master's salon, or a `super_admin`, books
-    a client who called or walked in. Anybody else naming another account is
-    `403`. The account is not checked against the platform's users -- the
-    salon takes it from the client's profile. `created_by` records who made
-    the booking; the key of `Idempotency-Key` belongs to the caller.
+    `client_user_id` lets a `salon_admin` of the salon or a `super_admin` book for a client;
+    anyone else gets `403`. The service name, price and duration are stored as a snapshot.
 
-    The booking is written with a snapshot of the service -- its name, price
-    and duration as they are now -- so a later change to the price list does
-    not rewrite history.
+    `Idempotency-Key` is required: the same key and body return the original response, a
+    different body returns `422 idempotency_key_reuse`.
 
-    `Idempotency-Key` is mandatory. The same key with the same body answers the
-    first answer again without booking anything twice; the same key with a
-    different body is `422 idempotency_key_reuse`.
-
-    The salon's windows are checked first: too close to the start is
-    `booking_too_late`, too far ahead `booking_too_far`, a time the master does
-    not work `slot_outside_schedule`, a deactivated master `master_inactive`
-    and a service they do not offer `service_not_offered`.
-
-    Whether the time is still free is decided by the database at the moment of
-    the insert, not by the availability the client was shown. Losing that race
-    is `409 slot_taken`.
+    Errors: `booking_too_late`, `booking_too_far`, `slot_outside_schedule`,
+    `master_inactive`, `service_not_offered`, and `409 slot_taken` if the slot was taken
+    concurrently.
     """
     return await scenario.execute(caller=caller, request=request, body=body)
 
@@ -139,17 +122,10 @@ async def list_bookings(
         Query(alias="status", description="Repeat to accept several statuses."),
     ] = None,
 ) -> Page[BookingResponse]:
-    """The bookings the caller may see, by start time, a page at a time.
+    """Bookings visible to the caller, ordered by `start_at`, cursor-paginated.
 
-    What is visible depends on who asks, not on the filters: a client sees the
-    bookings they made; a master also sees every booking with them; a
-    `salon_admin` sees every booking of their salon; a `super_admin` sees all.
-    A master who books a haircut elsewhere sees it as its client. The filters
-    narrow that set further -- a `salon_id` of another salon yields an empty
-    page, not an error.
-
-    Ordered by `start_at`, oldest first. Pages are cursor-based: pass
-    `next_cursor` back as `cursor` until it is `null`.
+    Clients see their own bookings, masters also see bookings with them, a `salon_admin`
+    sees the salon's, a `super_admin` sees all. Filters only narrow that set.
     """
     filters = BookingFilters(
         starts_from=starts_from,
@@ -169,7 +145,7 @@ async def list_bookings(
 async def read_booking(
     booking_id: UUID, caller: Participant, scenario: ReadBookingScenario
 ) -> BookingResponse:
-    """One booking, if the caller may see it -- by the same rules as the list.
+    """One booking, if the caller may see it: by the same rules as the list.
 
     A booking the caller may not see is `404`, exactly like one that does not
     exist: the answer says nothing about other people's appointments.
@@ -196,19 +172,12 @@ async def cancel_booking(
     scenario: CancelBookingScenario,
     body: Annotated[BookingCancelRequest | None, Body()] = None,
 ) -> BookingResponse:
-    """Call a visit off and free its time at once.
+    """Cancel a booking.
 
-    The client of the booking cancels it up to the salon's deadline before the
-    start -- the deadline as it was when the booking was made. Later than that
-    is `cancel_deadline_passed`, and only the salon can still cancel: a
-    `salon_admin` of the salon or a `super_admin`, whose cancellation is
-    recorded as the salon's. The master of the booking cannot cancel it.
-
-    Nobody cancels a visit that has started (`booking_already_started`), and a
-    completed visit or a no-show is `409 booking_status_conflict`.
-
-    Cancelling a cancelled booking answers with it as it is, and nothing is
-    sent to the client a second time.
+    The client can cancel until the salon's deadline (as it was at booking time); after that
+    only a `salon_admin` or `super_admin` can. Masters cannot cancel. Errors:
+    `cancel_deadline_passed`, `booking_already_started`, `409 booking_status_conflict`.
+    Cancelling an already cancelled booking returns it unchanged.
     """
     return await scenario.execute(caller=caller, booking_id=BookingId(booking_id), body=body)
 
@@ -239,20 +208,10 @@ async def reschedule_booking(
     caller: Participant,
     scenario: RescheduleBookingScenario,
 ) -> BookingResponse:
-    """Move a booking to another start, atomically.
+    """Move a booking to another start time atomically.
 
-    The same booking at a new time: not a cancellation and a new booking. If
-    the new time is lost to somebody else, the answer is `409 slot_taken` with
-    `alternatives`, and the booking stays where it was.
-
-    Who may, and until when, is the same as for a cancellation: the client up
-    to the salon's deadline before the current start, the salon at any moment
-    before it. The new time passes the same checks as a new booking --
-    `booking_too_late`, `booking_too_far`, `slot_outside_schedule`,
-    `master_inactive`, `service_not_offered`. The service, its price and its
-    duration stay as they were booked.
-
-    Moving a booking to the start it already has answers with it as it is.
+    Same permissions and deadline as cancellation, same checks as creation. If the new slot
+    is taken, returns `409 slot_taken` with `alternatives` and the booking is unchanged.
     """
     return await scenario.execute(caller=caller, booking_id=BookingId(booking_id), body=body)
 
@@ -272,16 +231,10 @@ _CLOSE_RESPONSES: dict[int | str, dict[str, object]] = {
 async def complete_visit(
     booking_id: UUID, caller: Participant, scenario: CloseVisitScenario
 ) -> BookingResponse:
-    """Record that the client came and was served.
+    """Mark a visit as completed.
 
-    For the master of the booking and for the salon -- a `salon_admin` of
-    the salon or a `super_admin` -- once the visit has started
-    (`booking_not_started` before that). The client cannot mark their own
-    visit.
-
-    The time stays taken: a completed visit is not free time for anybody else.
-    Marking it completed again answers with it as it is; a no-show is not
-    turned into a completed visit (`409 booking_status_conflict`).
+    Allowed for the master and the salon once the visit has started (`booking_not_started`
+    before). A no-show cannot be completed (`409 booking_status_conflict`).
     """
     return await scenario.execute(
         caller=caller, booking_id=BookingId(booking_id), outcome=BookingStatus.COMPLETED

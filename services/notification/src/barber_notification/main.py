@@ -1,9 +1,4 @@
-"""Entry point of the notification service.
-
-Delivery of notifications: the log and Telegram adapters, retries. Keeps its
-own copy of contacts, filled from ``auth.users.v1``; queues a message for every
-booking event worth one, and a worker sends what is queued.
-"""
+"""Entry point of the notification service."""
 
 from __future__ import annotations
 

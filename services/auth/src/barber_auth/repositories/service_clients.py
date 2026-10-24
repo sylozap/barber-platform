@@ -38,16 +38,10 @@ class ServiceClientRepository:
         return result.scalar_one_or_none()
 
     async def upsert(self, *, client_id: str, secret_hash: str, scopes: Sequence[str]) -> None:
-        """Register a client from configuration, or update what it may do.
+        """Insert or update a configured service client.
 
-        Called at startup for every configured client. Unlike the signing key,
-        a conflict here updates: the secret and the scopes come from the
-        Secret of this deployment, so redeploying with a rotated secret has to
-        take effect rather than be quietly ignored.
-
-        ``is_active`` is deliberately not touched. A client an operator
-        switched off stays off until they switch it back on, and a rolling
-        restart must not undo that.
+        Secret and scopes are updated on conflict; ``is_active`` is left as the operator set
+        it.
         """
         statement = insert(ServiceClient).values(
             client_id=client_id,

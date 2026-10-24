@@ -1,9 +1,4 @@
-"""Reading and writing the outbox.
-
-The repository never commits. A scenario writes the booking and the event in
-one transaction and commits once; a repository that committed on its own would
-make that impossible.
-"""
+"""Outbox repository. Never commits; the scenario owns the transaction."""
 
 from __future__ import annotations
 
@@ -41,14 +36,9 @@ class OutboxRepository:
         event_version: int = 1,
         causation_id: UUID | None = None,
     ) -> OutboxMessage:
-        """Queue an event inside the caller's transaction.
+        """Add an event to the outbox within the caller's transaction.
 
-        The payload arrives as a pydantic model and is stored as JSON: the
-        schema is checked here, at the only place that knows it, and not when
-        a consumer three services away fails to parse it.
-
-        ``causation_id`` defaults to the event being handled, when this runs
-        in a consumer.
+        ``causation_id`` defaults to the event currently being handled.
         """
         event_id = uuid4()
         with _create_span(topic, event_type, count=1, event_id=event_id):
@@ -80,7 +70,7 @@ class OutboxRepository:
     ) -> list[OutboxMessage]:
         """Queue many events of one type in one statement.
 
-        For a single change that touches many aggregates -- a cascade -- where
+        For a single change that touches many aggregates (a cascade) where
         a flush per event would grow the transaction by a round trip for each.
         ``events`` pairs the id of each aggregate with its payload.
         """

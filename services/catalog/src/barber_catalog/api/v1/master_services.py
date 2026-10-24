@@ -1,8 +1,4 @@
-"""What a master offers, and on what terms.
-
-Both endpoints are closed to everyone but the administrators of the salon the
-master belongs to, and both are idempotent.
-"""
+"""Master offerings. Admin only, idempotent."""
 
 from __future__ import annotations
 
@@ -45,28 +41,12 @@ async def link_master_service(
     caller: SalonAdministrator,
     scenario: LinkMasterServiceScenario,
 ) -> MasterServiceResponse:
-    """State that this master offers this service, and on what terms.
+    """Set the terms on which this master offers this service.
 
-    `PUT` states the **whole** terms of the link. An override left out of the
-    body -- or sent as `null` -- is an override that no longer applies, and the
-    salon's base figure takes over. A body of `{}` therefore means "at the
-    salon's price, for the salon's duration", and is the way to clear an
-    override that was set earlier.
-
-    Repeating the call with the same body changes nothing and answers `200`
-    again. An administrator setting the price list for a dozen masters retries,
-    and a create that failed the second time would leave them checking each one
-    by hand.
-
-    The service has to belong to the master's own salon. If it does not, the
-    answer is `422` and not `404`: both exist and the caller may see both, so
-    what is wrong is the combination. An archived service cannot be taken up
-    either -- archiving is how a salon stops offering something, and letting a
-    master pick it back up would make the archive an opinion rather than a
-    state.
-
-    The response carries `price` and `duration_min` already resolved, next to
-    the override and the base figure each came from.
+    `PUT` replaces the whole link: an omitted or `null` override falls back to the salon's
+    base value, so `{}` means "salon price and duration". Repeating the call returns `200`.
+    The service must belong to the master's salon and must not be archived (`422`). The
+    response includes the resolved `price` and `duration_min`.
     """
     return await scenario.execute(
         caller=caller,
@@ -91,18 +71,10 @@ async def unlink_master_service(
     caller: SalonAdministrator,
     scenario: UnlinkMasterServiceScenario,
 ) -> None:
-    """Withdraw the service from this master's card.
+    """Withdraw the service from this master.
 
-    **Bookings that already exist are untouched.** A booking carries its own
-    snapshot of the service name, price and duration, taken when it was made,
-    so what a master offers today has no bearing on what was already agreed.
-
-    The terms are kept rather than thrown away, so re-stating the link later
-    does not mean entering the prices again.
-
-    A link that is not there, or is already withdrawn, still answers `204`: the
-    requested state is the state that holds. A master that does not exist is
-    `404` -- that is a wrong request rather than a repeated one.
+    Existing bookings are not affected, and the overrides are kept for a later re-link.
+    Always `204` for a missing or already withdrawn link; `404` for an unknown master.
     """
     await scenario.execute(
         caller=caller,

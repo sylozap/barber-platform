@@ -1,9 +1,4 @@
-"""The answer to losing a race for a time: somewhere else to go.
-
-Creating a booking and moving one both lose to the exclusion constraint in the
-same way, and both answer with a few free starts from the moment that was
-asked for.
-"""
+"""Alternative free slots offered after losing a slot to the exclusion constraint."""
 
 from __future__ import annotations
 
@@ -47,14 +42,9 @@ class SlotTaken:
         now: datetime,
         ignoring: BookingId | None = None,
     ) -> SlotAlreadyTaken:
-        """The error to raise, counted as a conflict.
+        """Build the ``slot_taken`` error with alternatives and count the conflict.
 
-        Read after the rollback, so the alternatives already account for the
-        booking that won. An empty list is a valid answer -- the week ahead can
-        genuinely be full -- and the client is told no more than that.
-
-        ``ignoring`` is the booking being moved: its own current time is not
-        in its way.
+        Runs after the rollback, so the winning booking is already excluded.
         """
         BOOKING_CONFLICTS.labels(salon=str(offering.salon_id)).inc()
         alternatives = await self._nearest_free(

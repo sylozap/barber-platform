@@ -1,9 +1,4 @@
-"""Kafka producer for event envelopes.
-
-The message key is the aggregate id, so the events of one aggregate stay in
-order. Headers carry ``event_type``, ``correlation_id`` and ``traceparent``.
-Only the outbox relay publishes through it.
-"""
+"""Kafka producer for event envelopes, keyed by aggregate id. Used only by the outbox relay."""
 
 from __future__ import annotations
 
@@ -84,16 +79,10 @@ class EventProducer:
         envelope: EventEnvelope[PayloadT],
         traceparent: str | None = None,
     ) -> None:
-        """Send one event and wait for the brokers to acknowledge it.
+        """Send one event and wait for the broker acknowledgement.
 
-        Waiting is the point: the relay marks the row as published only after
-        this returns, so a broker that is down leaves the row for the next pass.
-
-        ``traceparent`` is the context the event was written in, as the outbox
-        stored it. The message carries that context rather than the one of the
-        publish, so the consumer continues the trace of the write. The publish
-        span is then a root linked to it, not its child: it happens later, in
-        a pass of the relay that serves many requests and belongs to none.
+        The message carries the ``traceparent`` stored with the outbox row, so consumers
+        continue the trace of the original write.
         """
         # An empty context makes a root; None means "the current span".
         root = None if traceparent is None else Context()
@@ -129,7 +118,7 @@ def _build_headers[PayloadT](
 ) -> MessageHeaders:
     """Duplicate the routing fields of the envelope into message headers.
 
-    Without a stored context the current span goes in -- the publish span --
+    Without a stored context the current span goes in (the publish span)
     so the consumer still continues a trace instead of starting one.
     """
     carrier: dict[str, str] = {}

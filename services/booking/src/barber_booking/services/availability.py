@@ -1,13 +1,4 @@
-"""Answering "when is this master free for this service".
-
-The hot path of the platform. What it costs is one cached call to ``catalog``,
-one read of the master's settings, and one query per range of dates that is not
-already in the cache.
-
-The answer is an estimate and says so: between reading it and creating a
-booking the slot may be taken, and the only arbiter of that is the constraint
-in the database.
-"""
+"""Availability: one cached catalog call, master settings, and SQL for uncached date ranges."""
 
 from __future__ import annotations
 

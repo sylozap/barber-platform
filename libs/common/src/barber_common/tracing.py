@@ -1,22 +1,8 @@
-"""OpenTelemetry tracing across service boundaries.
+"""OpenTelemetry tracing across HTTP and Kafka, switched by ``OTLP_ENABLED``.
 
-Tracing is switched by ``OTLP_ENABLED``. While it is off, spans are
-non-recording and the log fields ``trace_id`` and ``span_id`` stay ``null``.
-Kafka is instrumented in the producer and the consumer, where the trace context
-is written to and read from message headers.
-
-An event crosses two asynchronous gaps on its way, the outbox and the broker,
-and the trace is carried over both. Writing an event opens a ``create`` span
-in the trace of whatever wrote it, and its ``traceparent`` is stored with the
-row. The relay publishes later, outside that trace: its ``publish`` span starts
-a trace of its own and links to the stored context instead of descending from
-it, while the message headers carry the stored context on. The consumer
-continues from there, so one trace runs from the request to the effect of the
-event, with the relay beside it.
-
-Modules take their tracer at the moment they start a span instead of holding
-one: a tracer held from import keeps the first provider it resolved for the
-life of the process, and a test suite installs a provider per test.
+The outbox stores the ``traceparent`` of the write; the relay's ``publish`` span links to
+it, and the consumer continues it, so one trace covers request to handler. Tracers are
+looked up per span because tests install a provider per test.
 """
 
 from __future__ import annotations
@@ -100,17 +86,10 @@ def configure_tracing(
 
 
 class OrphanDatabaseSpanFilter(SpanProcessor):
-    """Drops database spans that belong to no operation.
+    """Drops database spans that have no parent.
 
-    The relay and the delivery worker poll their tables every second, and
-    every poll is a statement. Outside a request or a message there is no span
-    to hang it on, so each one would become a trace of its own, and the search
-    in Tempo would drown in lone ``SELECT ... FOR UPDATE``. A statement that
-    is part of something keeps its span.
-
-    A filter on export rather than a sampler: the instrumentation names the
-    database only after the span has started, when the sampler has already
-    decided.
+    The relay and delivery worker poll every second; without this each poll would be its own
+    trace in Tempo. Done at export because the sampler runs before the span is named.
     """
 
     def __init__(self, delegate: SpanProcessor) -> None:

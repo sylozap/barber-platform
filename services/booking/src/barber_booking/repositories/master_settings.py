@@ -63,7 +63,7 @@ class MasterSettingsRepository:
 
         ``ON CONFLICT DO NOTHING`` rather than a read first: the event and the
         lazy path can race for the same master, and both must come out with
-        one row and no error. The row that is already there wins -- it holds a
+        one row and no error. The row that is already there wins: it holds a
         buffer somebody may have set since.
         """
         statement = (

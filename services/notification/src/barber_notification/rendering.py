@@ -1,12 +1,7 @@
-"""Turning a template and its fields into a message.
+"""Template rendering with ``string.Template``.
 
-A template is a text file in ``templates/``: the first line is the subject, a
-blank line follows, the rest is the body. Fields are ``$name`` placeholders of
-``string.Template``.
-
-``substitute`` rather than ``safe_substitute``: a field missing from the
-payload is an error that names the field, not a message that reaches a client
-with ``$start_at`` in it.
+The first line of a template is the subject. ``substitute`` is used so a missing field
+fails.
 """
 
 from __future__ import annotations

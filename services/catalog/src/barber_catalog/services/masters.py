@@ -1,8 +1,4 @@
-"""Creating, changing and reading master profiles.
-
-Creating a master writes ``master.created`` to the outbox in the same
-transaction. ``user_id`` is not checked against ``auth``.
-"""
+"""Master profiles. Creation writes ``master.created`` to the outbox in the same transaction."""
 
 from __future__ import annotations
 

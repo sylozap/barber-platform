@@ -1,14 +1,7 @@
-"""A master leaves, and the visits booked with them are called off.
+"""Cancels the future bookings of a deactivated master.
 
-The one place where an event of another service changes state here. It runs in
-the transaction the consumer runner opens, together with the row that marks
-the event processed: either every booking is cancelled, its event queued and
-the event recorded as handled, or none of it happened and the event comes
-again.
-
-The size of that transaction is bounded by the booking horizon of the salon --
-a master's future is at most a couple of months of visits -- and every step is
-one statement whatever the number of bookings.
+Runs in the consumer transaction, so either everything is cancelled and the event recorded,
+or the event is redelivered.
 """
 
 from __future__ import annotations

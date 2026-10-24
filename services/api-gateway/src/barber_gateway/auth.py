@@ -1,17 +1,8 @@
-"""Who is calling, as far as the gateway can vouch for it.
+"""Token checks at the gateway.
 
-The gateway is the first line, not the only one: every service
-verifies the token again itself, and ``Authorization`` reaches it untouched.
-What the gateway adds is a refusal before the request costs a service anything,
-and the identity headers ``X-User-Id`` and ``X-Roles`` written from the token it
-verified. The client's own headers under those names are dropped, always --
-on a public path too -- or anyone could call as anyone.
-
-A token that is sent is checked, whatever the path. One that fails is a ``401``
-even where no token is needed: the client learns that its token went stale
-instead of silently browsing as a stranger. Only user tokens are accepted from
-outside; a service token has no business at the public entrance, and the
-``/internal`` endpoints it opens are not reachable through the gateway at all.
+Services verify tokens again, the gateway only rejects early and sets ``X-User-Id`` and
+``X-Roles`` (client-sent values are always dropped). An invalid token is ``401`` even on
+public paths; service tokens are not accepted from outside.
 """
 
 from __future__ import annotations
@@ -67,7 +58,7 @@ PUBLIC_ENDPOINTS: tuple[PublicEndpoint, ...] = (
     _public(_POST, "/api/v1/auth/logout"),
     _public(_READ_METHODS, "/.well-known/jwks.json"),
     # The shop window: reading the catalog, the free slots and the card of a
-    # master. Not "any GET under /masters" -- the schedule of a master is a GET
+    # master. Not "any GET under /masters": the schedule of a master is a GET
     # too, and it is closed.
     _public(_READ_METHODS, "/api/v1/salons", exact=False),
     _public(_READ_METHODS, "/api/v1/services", exact=False),
@@ -91,7 +82,7 @@ class Identity:
     """The caller as the gateway sees it.
 
     ``principal`` is set when a token was sent and verified. ``token_rejected``
-    when one was sent and refused -- told apart from no token at all, because
+    when one was sent and refused: told apart from no token at all, because
     the first is a ``401`` on every path and the second only on closed ones.
     """
 
@@ -115,8 +106,8 @@ class Identity:
 def roles_header(roles: tuple[RoleClaim, ...]) -> str:
     """``X-Roles``: comma separated, a salon role followed by its salon.
 
-    ``client,salon_admin:0192f3c1-...``. The salon is part of the grant -- an
-    admin of one salon is nobody in another -- so it travels with it.
+    ``client,salon_admin:0192f3c1-...``. The salon is part of the grant (an
+    admin of one salon is nobody in another), so it travels with it.
     """
     return ",".join(
         grant.role if grant.salon_id is None else f"{grant.role}:{grant.salon_id}"

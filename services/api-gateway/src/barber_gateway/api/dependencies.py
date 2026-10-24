@@ -1,13 +1,6 @@
-"""What every request through the gateway passes before it goes anywhere.
+"""Gateway dependency: token check, then rate limit, then rejecting invalid tokens.
 
-One dependency on the proxy route and on the gateway's own endpoint, rather
-than ASGI middleware: a refusal raised here is a ``DomainError``, and the error
-handlers of the chassis turn it into the same ``problem+json`` as any other.
-The probes, ``/metrics`` and the OpenAPI document are not behind it.
-
-The order is deliberate. The token is read first, because the limit of a user
-is counted by user. The limit comes before the refusal of a bad token, because
-otherwise guessing tokens would be the one thing nobody limits.
+The limit is applied before rejecting a bad token, so token guessing is rate limited too.
 """
 
 from __future__ import annotations

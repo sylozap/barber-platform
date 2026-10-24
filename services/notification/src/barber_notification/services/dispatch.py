@@ -1,22 +1,7 @@
-"""Deciding who gets a message on which channels, and queueing it.
+"""Chooses channels for a message and queues it within the consumer transaction.
 
-Runs in the transaction of the consumer that received the event, next to the
-row that marks the event processed. Nothing is sent here: a network call does
-not belong inside a transaction, and the delivery worker sends what is queued.
-
-Which channels a message goes to:
-
-* every channel the recipient can be reached on -- ``email`` with a confirmed
-  address, ``telegram`` with a linked chat -- and has not switched off for
-  this kind of notification;
-* a message the platform must deliver whatever the preferences -- the
-  confirmation letter -- goes to the one address its event names.
-
-A recipient this service has not heard of, or one that was deactivated, gets
-nothing; that is logged and the event is done with.
-
-Each row keeps the trace and the correlation id of the event it came from, so
-the send, which happens later in the worker, is part of the same request.
+Every reachable channel the user hasn't disabled; the confirmation email goes only to the
+address in the event. Unknown or deactivated recipients are skipped.
 """
 
 from __future__ import annotations

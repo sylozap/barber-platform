@@ -1,18 +1,7 @@
-"""Containers, database isolation and the waiting helpers.
+"""Test containers, per-test isolation and waiting helpers.
 
-Three decisions shape everything here.
-
-**Containers start once per session.** A test run that recreates PostgreSQL per
-test is a run nobody waits for, and a suite nobody runs stops catching
-regressions within a week.
-
-**Isolation is a rollback, not a recreation.** Every test gets a session bound
-to a connection with an open transaction; whatever it writes is rolled back
-when it ends. Two tests writing to one table never see each other.
-
-**The schema comes from the migrations.** ``create_all`` is not used anywhere,
-including here: a schema built from the models would leave the migrations
-untested until they run in production for the first time.
+Containers start once per session, each test runs in a transaction that is rolled back, and
+the schema is built by the migrations, not ``create_all``.
 """
 
 from __future__ import annotations
@@ -148,8 +137,8 @@ async def isolated_session_factory(
     """Yield a session factory whose writes are undone when the test ends.
 
     Every session it produces joins the one open transaction by opening a
-    savepoint, so code under test can commit -- the relay and the consumers do
-    -- while the outer rollback still takes everything away afterwards.
+    savepoint, so code under test can commit (the relay and the consumers do)
+    while the outer rollback still undoes everything afterwards.
     """
     async with engine.connect() as connection:
         transaction = await connection.begin()

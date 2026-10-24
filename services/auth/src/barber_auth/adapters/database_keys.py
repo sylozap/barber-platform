@@ -1,22 +1,6 @@
-"""How ``auth`` verifies the tokens it issued itself.
+"""Key source for ``auth`` itself: reads ``signing_keys`` from the database, no cache.
 
-Every other service fetches the public keys over HTTP from
-``/.well-known/jwks.json`` and caches them. ``auth`` cannot: that endpoint is
-its own, and a service calling itself over the network adds a hop and a startup
-dependency on its own readiness for data it already has.
-
-So it reads ``signing_keys`` directly. Two consequences worth stating.
-
-**It is always current.** A key registered by another replica a second ago is
-visible immediately, which matters during a rotation: while a rolling deploy is
-half done, some pods sign with the new key and some with the old, and every pod
-has to verify both. A snapshot taken at startup would not, and requests would
-fail depending on which pod they landed on.
-
-**There is no cache.** One indexed query against a table with one or two rows,
-on the only endpoints of this service that verify a token at all -- role
-management. Registration, login and refresh are anonymous and never come here.
-A cache would trade that for the risk above, and the trade is not worth making.
+Keys registered by other replicas are visible immediately, which matters during rotation.
 """
 
 from __future__ import annotations

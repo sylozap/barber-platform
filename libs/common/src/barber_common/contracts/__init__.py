@@ -1,8 +1,4 @@
-"""DTOs of the synchronous calls between services.
-
-Imported by both the caller and the callee, so a mismatch is caught by mypy.
-Domain types stay in the service that owns them.
-"""
+"""DTOs of the synchronous calls between services, shared by caller and callee."""
 
 from barber_common.contracts.booking import AvailabilityResponse, DayAvailability
 from barber_common.contracts.catalog import (

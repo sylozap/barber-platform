@@ -1,11 +1,7 @@
-"""Cached reads of the catalog and their invalidation.
+"""Cached catalog reads and their invalidation.
 
-Cached: the master card, one service, and the internal answer for ``booking``.
-Listings are not cached.
-
-Invalidation uses one generation counter for the whole catalog: every key
-includes the current generation, and each write increments it after the
-commit. Stale entries left by a concurrent read are bounded by the TTL.
+Keys include a global generation counter that every write bumps after commit. Listings are
+not cached.
 """
 
 from __future__ import annotations

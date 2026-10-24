@@ -1,8 +1,4 @@
-"""The internal API of the catalog.
-
-Mounted at ``/internal/v1`` and not published through the gateway. Requires a
-service token; a user token is refused whatever its roles.
-"""
+"""Internal catalog API under ``/internal/v1``, not routed by the gateway. Service tokens only."""
 
 from __future__ import annotations
 
@@ -47,14 +43,11 @@ async def read_master_service_details(
     caller: InternalCaller,
     scenario: ReadMasterServiceDetailsScenario,
 ) -> MasterServiceDetails:
-    """Everything `booking` needs about one master offering one service.
+    """Everything `booking` needs about a master offering a service.
 
-    Returns whether the master is active, the price and duration this master
-    charges, a snapshot of the service name, and the salon's time zone with its
-    four booking policies.
-
-    A deactivated master is reported through `master_active`. A master who does
-    not offer this service answers `404`.
+    Master status, the master's price and duration, the service name, and the salon's time
+    zone and booking policies. An inactive master is reported via `master_active`; a service
+    the master does not offer returns `404`.
     """
     return await scenario.execute(
         master_id=MasterId(master_id),

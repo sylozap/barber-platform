@@ -1,15 +1,7 @@
-"""Reading what users send to the bot, by long polling.
+"""Telegram long polling for bot updates.
 
-Long polling rather than a webhook: a webhook needs a public HTTPS address,
-which the local cluster does not have. The cost is that Telegram allows one
-poller per bot -- a second ``getUpdates`` is answered ``409`` -- so only one
-replica polls. Which one is decided by a PostgreSQL advisory lock, held on a
-connection of its own for as long as the replica polls: when the pod dies, the
-connection closes, the lock is released, and another replica takes over.
-
-The offset of the next update lives in memory. Asking for it confirms the ones
-before, so a replica that dies between handling an update and the next poll
-sees that update again; handling it twice is harmless, the code is spent.
+Only one replica polls (Telegram allows one ``getUpdates`` consumer), chosen by a PostgreSQL
+advisory lock. Reprocessing an update is harmless.
 """
 
 from __future__ import annotations

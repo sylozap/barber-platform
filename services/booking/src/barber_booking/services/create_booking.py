@@ -1,14 +1,8 @@
-"""Creating a booking: the one write that holds the invariant of the platform.
+"""Create a booking.
 
-The order of the steps is the whole design. ``catalog`` is asked **before** any
-transaction opens, because holding a pooled connection across a network call is
-how a pool runs out. Everything after it -- the idempotency key, the row, the
-event -- is one transaction, so a booking that exists always has its event on
-the way and its key stored beside it.
-
-Whether the time is free is not checked anywhere here. The exclusion constraint
-answers that at the moment of the insert, and a violation becomes
-``409 slot_taken``.
+``catalog`` is called before the transaction opens, so no pooled connection is held during
+the network call. The idempotency key, the row and the event are written in one transaction;
+an exclusion violation becomes ``409 slot_taken``.
 """
 
 from __future__ import annotations

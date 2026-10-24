@@ -1,9 +1,6 @@
-"""Per-request context carried through the call stack.
+"""Per-request context (correlation id, user, trace) stored in contextvars.
 
-The values live in :mod:`contextvars`, so they follow ``await`` boundaries and
-stay isolated between concurrent tasks. Nothing passes them by hand: the log
-processor reads them, the HTTP client and the Kafka producer copy them into
-outgoing headers, and the consumer restores them from an incoming message.
+Read by the log processor and copied into outgoing HTTP and Kafka headers.
 """
 
 from __future__ import annotations
@@ -87,15 +84,10 @@ def _current_span_context() -> tuple[str, str] | None:
 
 
 def current_context() -> dict[str, str | None]:
-    """Return every context field, using ``None`` for the ones not set.
+    """Return every context field, ``None`` for the ones not set.
 
-    Fields are always present: a missing key in a log record is harder to query
-    in Loki than an explicit ``null``.
-
-    The trace fields are read from OpenTelemetry rather than stored, so a log
-    record names the span that actually produced it. A consumer restoring the
-    context of a message from Kafka headers, where no span is being recorded,
-    falls back to the values set through :func:`set_trace_context`.
+    Trace ids come from the current OpenTelemetry span, falling back to the values set by
+    :func:`set_trace_context` in consumers.
     """
     values = {name: variable.get() for name, variable in _VARIABLES.items()}
     span_context = _current_span_context()
@@ -142,7 +134,7 @@ def bind_causation(event_id: UUID) -> Iterator[None]:
     """Name the event whose handling is running for the duration of the block.
 
     The consumer sets it around a handler, and an event written to the outbox
-    from there takes it as its ``causation_id`` -- the way ``correlation_id``
+    from there takes it as its ``causation_id``: the way ``correlation_id``
     is taken, so a new handler cannot forget it.
     """
     token = _causation_id.set(event_id)

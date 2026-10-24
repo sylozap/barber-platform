@@ -180,14 +180,7 @@ class BookingRepository:
         return [_to_domain(row) for row in rows]
 
     async def claim_due_reminders(self, *, now: datetime, limit: int) -> list[DueReminder]:
-        """Up to ``limit`` bookings whose reminder is due and not yet sent.
-
-        Open bookings only: a cancelled or closed one gets no reminder. The
-        rows are held until the transaction ends, and ``SKIP LOCKED`` makes a
-        second replica step over them rather than publish them again. The
-        condition is the predicate of ``ix_bookings_reminder_at``, so the scan
-        reads the candidates and nothing else.
-        """
+        """Lock up to ``limit`` open bookings with a due, unsent reminder (``SKIP LOCKED``)."""
         statement = (
             select(BookingRow, MasterSettingsRow.timezone)
             .outerjoin(MasterSettingsRow, MasterSettingsRow.master_id == BookingRow.master_id)

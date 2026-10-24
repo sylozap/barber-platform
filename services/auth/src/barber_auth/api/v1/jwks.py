@@ -1,8 +1,4 @@
-"""``GET /.well-known/jwks.json``.
-
-The path is defined by RFC 8615, so the router is mounted at the application
-root rather than under ``/api/v1``. The endpoint is anonymous.
-"""
+"""``GET /.well-known/jwks.json`` (RFC 8615 path, mounted at the root)."""
 
 from __future__ import annotations
 

@@ -1,13 +1,4 @@
-"""Factories for the objects the chassis itself defines.
-
-A factory, not a ready-made object: the test names the two or three fields its
-assertion is about, and everything else gets a valid default. A fixture that
-hands out a finished object forces every test to know fields it does not care
-about, and the day one of them gains a constraint, every test changes.
-
-Domain factories -- bookings, masters, salons -- belong to the service that
-owns them. Only what lives in ``barber_common`` is here.
-"""
+"""Factories for the chassis objects: tests set only the fields they assert on."""
 
 from __future__ import annotations
 

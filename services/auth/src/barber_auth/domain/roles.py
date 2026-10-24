@@ -1,10 +1,4 @@
-"""Roles a user can hold, and who may grant them.
-
-A grant is either global or scoped to one salon; ``salon_admin`` always needs a
-salon, as :meth:`Role.is_scoped_to_salon` says. :func:`may_grant` is the
-authorisation rule for granting roles, as a pure function over the grants the
-caller holds.
-"""
+"""Roles, salon-scoped grants, and :func:`may_grant` for who may grant what."""
 
 from __future__ import annotations
 
@@ -31,7 +25,7 @@ class Role(StrEnum):
 
 
 # ``client`` is deliberately absent. It comes with registration, and a second
-# way to hand it out is a second way for the two to disagree -- an account
+# way to hand it out is a second way for the two to disagree: an account
 # with no client role, or one that has it twice over.
 GRANTABLE_ROLES = frozenset({Role.MASTER, Role.SALON_ADMIN, Role.SUPER_ADMIN})
 

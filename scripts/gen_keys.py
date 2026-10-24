@@ -1,37 +1,14 @@
 #!/usr/bin/env python
-"""Generate an RS256 key pair for ``auth`` and print it where it belongs.
-
-The service signs access tokens with an RSA private key it is given; it never
-generates one for itself, because a service that invents a key on startup
-issues tokens the rest of the platform cannot verify, and every replica would
-invent a different one.
+"""Generate an RS256 key pair for ``auth``.
 
 Usage::
 
-    # Look at a new key pair and its kid
-    python scripts/gen_keys.py
+    python scripts/gen_keys.py                                  # print a key pair and its kid
+    python scripts/gen_keys.py --out secrets/auth-signing-key.pem [--mode 644]
+    python scripts/gen_keys.py --env                            # one line for .env
 
-    # Write the private half to a file for a mounted Secret, print the kid
-    python scripts/gen_keys.py --out secrets/auth-signing-key.pem
-
-    # The same, readable by a container that runs as another user
-    python scripts/gen_keys.py --out secrets/auth-signing-key.pem --mode 644
-
-    # A single line to paste into .env as JWT_PRIVATE_KEY
-    python scripts/gen_keys.py --env
-
-**The output is a secret and nothing here writes it into the repository.**
-``--out`` refuses a path inside the working tree that git is watching, and the
-default is to print, so the value lands in a terminal the operator controls
-rather than in a file someone commits by accident. ``scripts/check-secrets.sh``
-is the second line of defence, not the first.
-
-Rotating a key is not this script's job and needs no special support: generate
-a new pair, give it to the service, restart. The new public half is registered
-alongside the old one, both are served from ``/.well-known/jwks.json``, and the
-tokens signed by the outgoing key keep verifying until they expire. The old row
-is deactivated once no token can still carry its ``kid`` -- fifteen minutes
-after the last pod running it was replaced.
+``--out`` refuses paths tracked by git. To rotate a key, generate a new one and restart
+``auth``; both keys stay in JWKS until the old tokens expire.
 """
 
 from __future__ import annotations
@@ -51,8 +28,7 @@ from barber_auth.adapters.rsa_signer import RsaTokenSigner
 
 KEY_SIZE_BITS = 4096
 # 65537. The standard public exponent: large enough to be safe against the
-# small-exponent attacks that killed 3, small enough to keep verification --
-# which every service does on every request -- cheap.
+# small-exponent attacks on e=3, small enough to keep verification cheap.
 PUBLIC_EXPONENT = 65537
 
 
@@ -155,7 +131,7 @@ def _write_private_key(path: Path, private_pem: str, mode: int = 0o600) -> None:
     # window in which the key is readable by everyone, and that window is all
     # an attacker needs. The widening cannot be folded into the open() flags
     # instead, because the umask of the caller silently strips bits from the
-    # mode given there -- a developer running with umask 077 would get a 0600
+    # mode given there: a developer running with umask 077 would get a 0600
     # key back and no indication that the mode they asked for was ignored.
     descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(descriptor, "w", encoding="ascii") as handle:

@@ -1,9 +1,4 @@
-"""The signing key port used by the scenarios.
-
-A signer turns claims into a signed string, is named by a ``kid``, and exposes
-its public key for JWKS. There is no ``verify``: tokens are verified by the
-services that receive them.
-"""
+"""Signer port: signs claims, exposes ``kid`` and the public key for JWKS."""
 
 from __future__ import annotations
 

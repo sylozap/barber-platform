@@ -1,10 +1,4 @@
-"""Migrations: the shared tables and the schema version check at startup.
-
-:func:`create_shared_tables` creates ``outbox`` and ``processed_events`` from
-the first revision of every service. :func:`check_schema_is_current` refuses to
-start the application when the database revision differs from the head of its
-migration scripts.
-"""
+"""Shared tables (``outbox``, ``processed_events``) and the schema version check at startup."""
 
 from __future__ import annotations
 

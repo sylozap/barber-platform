@@ -1,8 +1,6 @@
-"""Registration: the account, its role, its confirmation token and two events.
+"""Registration: user, role, confirmation token and events in one transaction.
 
-All of them are written in one transaction. The letter with the link is not
-sent from here: ``notification`` sends it from
-``user.email_confirmation_requested``.
+The confirmation email is sent by ``notification``.
 """
 
 from __future__ import annotations

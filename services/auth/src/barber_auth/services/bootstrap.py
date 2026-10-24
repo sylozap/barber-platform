@@ -1,12 +1,7 @@
-"""The first administrator of the platform, created from configuration.
+"""Creates the first ``super_admin`` from configuration at startup.
 
-Only a ``super_admin`` creates a salon, and only a ``super_admin`` grants that
-role, so the first one cannot come through the API: a platform started empty
-would have nobody able to do anything. The deployment names the account in its
-Secret, and auth makes sure it exists at every start.
-
-Configuration rather than a migration, for the reason the service clients are:
-a password hash in a migration is a secret in git.
+It can't be done via the API (only a super admin can grant the role), and a migration would
+put a password hash in git.
 """
 
 from __future__ import annotations
@@ -49,7 +44,7 @@ class EnsureBootstrapAdmin:
 
     An account that exists keeps its password, contacts and confirmation:
     whoever runs the platform may have changed them since, and a restart must
-    not undo that. Only the role is ensured -- the one thing the configuration
+    not undo that. Only the role is ensured: the one thing the configuration
     promises.
     """
 

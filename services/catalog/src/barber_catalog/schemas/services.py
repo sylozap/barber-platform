@@ -39,15 +39,7 @@ class ServiceCreateRequest(BaseModel):
 
 
 class ServiceUpdateRequest(BaseModel):
-    """A change to a service. Absent fields are left alone.
-
-    ``null`` clears ``description``; every other field has no empty value and
-    refuses it.
-
-    ``is_archived`` is not here: withdrawing a service is
-    ``POST /api/v1/services/{id}/archive``, which is one thing with one meaning
-    rather than a flag that can be flipped back and forth by an ordinary edit.
-    """
+    """Partial update of a service. ``null`` clears ``description`` only."""
 
     model_config = ConfigDict(extra="forbid")
 

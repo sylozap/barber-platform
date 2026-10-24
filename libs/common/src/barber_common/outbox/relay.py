@@ -1,18 +1,8 @@
-"""Worker that publishes outbox rows to Kafka.
+"""Outbox relay: publishes outbox rows to Kafka.
 
-Each pass claims a batch with ``FOR UPDATE SKIP LOCKED``, publishes it and marks
-it published in one transaction. Publishing inside the transaction is
-deliberate: the row lock stops another replica from sending the same event.
-Delivery is at-least-once, and a republished event keeps its ``event_id``.
-
-The relay publishes in the context stored with each row, not in its own: see
-:mod:`barber_common.tracing` for why its span is linked rather than a child.
-
-The outbox is measured by a loop of its own, not by the passes. A pass can
-fail, and it can also hang: with the broker gone, the Kafka client waits in a
-send with no deadline. A gauge set by the pass would then keep its last value,
-usually zero, for the whole outage -- exactly when it has to grow. A plain
-SELECT is not blocked by the rows a hung pass holds locked.
+Claims a batch with ``FOR UPDATE SKIP LOCKED`` and marks it published in the same
+transaction (at-least-once). The outbox size is measured by a separate loop, since a pass
+can hang on a send while the broker is down.
 """
 
 from __future__ import annotations
@@ -35,8 +25,8 @@ __all__ = ["OutboxRelay"]
 
 _logger = get_logger(__name__)
 
-# Both answer the same question -- have the database and the broker drifted
-# apart -- from two sides: how many events are waiting and how old the oldest
+# Both answer the same question (have the database and the broker drifted
+# apart) from two sides: how many events are waiting and how old the oldest
 # one is. A count alone hides a single stuck row; an age alone hides a backlog.
 OUTBOX_PENDING = gauge(
     "outbox_pending_messages",
@@ -161,7 +151,7 @@ class OutboxRelay:
 
         A failure here is not fatal: the rows stay unpublished, the gauges grow,
         and the next pass sends them. That is the behaviour the failure drill
-        expects -- stop Kafka, watch the outbox fill, start it, watch it empty.
+        expects: stop Kafka, watch the outbox fill, start it, watch it empty.
         """
         try:
             return await self.run_once()

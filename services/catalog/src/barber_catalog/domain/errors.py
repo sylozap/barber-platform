@@ -1,9 +1,4 @@
-"""Failures the catalog can report.
-
-Each error carries its domain ``code``, and the chassis handler turns it into
-``problem+json``. A caller who may not touch a salon gets ``403`` whatever the
-reason; ``404`` is answered only to a caller entitled to see the entity.
-"""
+"""Domain errors of catalog, each with its own ``code``."""
 
 from __future__ import annotations
 

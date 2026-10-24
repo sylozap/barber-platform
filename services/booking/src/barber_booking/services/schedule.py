@@ -1,10 +1,6 @@
-"""Setting and reading a master's schedule.
+"""Master schedule changes: lock settings, validate, write, then invalidate availability.
 
-Every change takes the lock on the master's settings row first, validates
-against what is stored, writes, commits, and only then retires the cached
-availability of that master. **A change never cancels bookings**, even those
-it leaves outside working time: an administrator sees the conflict and settles
-it by hand.
+Schedule changes never cancel bookings.
 """
 
 from __future__ import annotations

@@ -1,19 +1,7 @@
-"""Which service answers which path.
+"""Routing table: which service handles which path.
 
-Not "by the first segment of the path", although that is how it started: the
-master lives in two services. The profile, the services offered and the
-activation belong to ``catalog``; the schedule and the settings of the same
-master belong to ``booking``. So
-the table holds path templates, and it is read top to bottom: the first rule
-that matches wins, which is why the two ``booking`` rules under ``/masters``
-stand above the ``catalog`` rule for ``/masters`` itself.
-
-A rule covers its template and everything below it, segment by segment:
-``/api/v1/bookings`` matches ``/api/v1/bookings/{id}/cancel`` and does not match
-``/api/v1/bookingsx``.
-
-``/internal/*`` is in no rule and therefore not reachable from outside: those
-endpoints take service tokens only, and the gateway never carries one.
+Rules are path prefixes matched top to bottom, so the ``booking`` rules under ``/masters``
+come before the ``catalog`` one. ``/internal/*`` is not routed.
 """
 
 from __future__ import annotations

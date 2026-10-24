@@ -1,8 +1,4 @@
-"""Registration, email confirmation, and the lifecycle of a session.
-
-Every endpoint here is anonymous: the credential being verified is in the
-request body.
-"""
+"""Registration, email confirmation and session endpoints (all anonymous)."""
 
 from __future__ import annotations
 
@@ -112,11 +108,8 @@ async def login(
 ) -> TokenPairResponse:
     """Sign in.
 
-    A wrong password, an unknown address and a deactivated account all answer
-    `401` with the same body. An unconfirmed address answers `403` with
-    `email_not_confirmed`.
-
-    The refresh token is returned in the body.
+    Wrong password, unknown email and deactivated account all return the same `401`. An
+    unconfirmed email returns `403 email_not_confirmed`.
     """
     pair = await scenario.execute(
         email=body.email,
@@ -156,12 +149,8 @@ async def refresh(
     summary="End the current session, or every session of the user",
 )
 async def logout(body: LogoutRequest, scenario: RevokeSessionsScenario) -> None:
-    """Sign out.
+    """Sign out of the current session, or of all sessions with `all_devices`.
 
-    With `all_devices` false this ends the session the token belongs to; with
-    it true, every session of the user ends. Access tokens already issued keep
-    working until they expire, within fifteen minutes.
-
-    Always answers `204`, including for an unknown or already revoked token.
+    Issued access tokens stay valid until they expire. Always returns `204`.
     """
     await scenario.execute(refresh_token=body.refresh_token, all_devices=body.all_devices)

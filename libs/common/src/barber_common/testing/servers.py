@@ -1,8 +1,4 @@
-"""Applications served for real, on ports of localhost, inside the test process.
-
-For the tests that need the platform as a client sees it -- over HTTP, the
-services talking to each other as in a cluster -- without building images.
-"""
+"""Real applications served on localhost ports inside the test process."""
 
 from __future__ import annotations
 

@@ -1,9 +1,4 @@
-"""Assembling the scenarios a request needs.
-
-A scenario takes its dependencies through the constructor, so it can be built
-in a test without an application behind it. Here they are put together from
-the request's session and the settings of the running service.
-"""
+"""Builds scenarios from the request session and the service settings."""
 
 from __future__ import annotations
 

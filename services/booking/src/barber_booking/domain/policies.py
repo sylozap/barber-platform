@@ -1,10 +1,4 @@
-"""The windows a booking has to fall inside.
-
-The salon sets three of them -- how late a client may still book, how far
-ahead, and on what grid -- and they are applied here, not where the row is
-written. Whether the time is *free* is not decided here at all: that is the
-exclusion constraint's answer, and the only one that counts.
-"""
+"""Salon booking windows: minimum lead time, horizon and slot grid."""
 
 from __future__ import annotations
 

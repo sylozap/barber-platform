@@ -1,9 +1,4 @@
-"""What every provider is: a message in, a result out.
-
-A provider knows nothing about Kafka, the database or the journal. It gets a
-finished message and an address, delivers or fails, and says which kind of
-failure it was -- the delivery worker decides what to do about it.
-"""
+"""Provider interface: deliver a rendered message and report temporary or permanent failure."""
 
 from __future__ import annotations
 
@@ -36,7 +31,7 @@ class Channel(StrEnum):
 class Message:
     """A rendered message, ready to go.
 
-    ``is_sensitive`` marks a text that carries a credential -- the link of an
+    ``is_sensitive`` marks a text that carries a credential: the link of an
     email confirmation. Such a text is never written to a log outside the local
     and test environments.
     """
@@ -63,7 +58,7 @@ class DeliveryResult:
     """The outcome of one attempt and what the worker needs to act on it.
 
     ``detail`` is safe to store and to log: no address, no token, no text.
-    ``address_gone`` says the address itself is dead -- the chat was blocked --
+    ``address_gone`` says the address itself is dead (the chat was blocked)
     so the recipient should stop being offered this channel.
     """
 

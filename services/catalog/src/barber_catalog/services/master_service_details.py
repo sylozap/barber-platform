@@ -1,8 +1,4 @@
-"""The details ``booking`` reads about one master offering one service.
-
-Returns the contract in :mod:`barber_common.contracts.catalog`. Final price and
-duration are resolved through :class:`~barber_catalog.domain.pricing.Offering`.
-"""
+"""Master offering details for ``booking``, with the final price and duration resolved."""
 
 from __future__ import annotations
 

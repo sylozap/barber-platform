@@ -1,7 +1,6 @@
 """Verification of the tokens issued by ``auth``.
 
-Every service verifies tokens itself instead of trusting the gateway. Issuing
-tokens stays in ``auth``, which alone holds the private key.
+Every service verifies tokens itself instead of trusting the gateway.
 """
 
 from barber_common.auth.claims import (

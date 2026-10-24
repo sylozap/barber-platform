@@ -1,13 +1,6 @@
-"""The life cycle of masters, as booking follows it from ``catalog.masters.v1``.
+"""Keeps master settings in sync with ``catalog.masters.v1``.
 
-A consumer group of its own, apart from the one retiring cached data. The two
-fail for different reasons -- a database here, Redis there -- and one must not
-hold the other back. Starting from the earliest offset, a new group also reads
-the ``master.created`` events published before it existed, so masters made
-earlier get their settings without a manual step.
-
-Each handler runs in the runner's transaction, together with the row that marks
-the event processed: a redelivered event is dropped before it gets here.
+Separate consumer group from cache invalidation, so a Redis outage doesn't block it.
 """
 
 from __future__ import annotations

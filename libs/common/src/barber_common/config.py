@@ -1,11 +1,7 @@
-"""Application settings shared by every service.
+"""Settings shared by every service, read from environment variables only.
 
-Settings come from environment variables only; reading ``os.environ`` directly
-anywhere else is forbidden. Every service subclasses :class:`BaseAppSettings`
-and adds its own fields.
-
-Secrets, database and broker addresses have no defaults on purpose: a process
-that starts with an incomplete configuration becomes an incident a week later.
+Secrets and connection addresses have no defaults, so a misconfigured service fails at
+startup.
 """
 
 from __future__ import annotations
