@@ -1,7 +1,7 @@
 """The reminder scheduler: ``reminder.due`` once a booking's ``reminder_at`` comes.
 
 Kafka cannot hold a message back until a moment, and a consumer that sleeps
-holds its partition, so the schedule lives in the database (ADR-0011). Every
+holds its partition, so the schedule lives in the database. Every
 minute a pass takes the bookings whose reminder is due and, in one transaction,
 writes ``reminder.due`` to the outbox and stamps ``reminder_sent_at``.
 

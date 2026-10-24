@@ -1,4 +1,4 @@
-# Alerting rules of the platform, the table of docs/11-observability.md.
+# Alerting rules of the platform.
 #
 # Every alert carries three annotations, and an alert without them does not
 # pass the contract test (tests/contract/test_observability.py):

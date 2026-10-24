@@ -20,7 +20,7 @@ env:
   UV_VERSION: "0.12.8"
   PYTHON_VERSION: "3.12"
   REGISTRY: ghcr.io
-  # The versions a developer is expected to run locally (docs/10-infrastructure.md).
+  # Same versions as recommended for local development.
   HELM_VERSION: "v3.22.0"
   KUBECONFORM_VERSION: "v0.8.0"
 

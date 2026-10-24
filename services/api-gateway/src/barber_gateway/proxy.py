@@ -11,8 +11,7 @@ and ``Content-Encoding`` of the service remain true.
 Not :class:`~barber_common.http.ServiceClient`, deliberately. That client reads
 the answer whole and turns an error status into an exception, which is right
 for a caller that wants a contract and wrong for a proxy that must hand back
-exactly what the service said (``docs/CODING_STANDARDS.md`` §8 names the
-exception). What is kept from it is the circuit breaker, one per service.
+exactly what the service said. What is kept from it is the circuit breaker, one per service.
 
 Nothing is retried. A ``POST`` that timed out may have created a booking, and
 only the client knows whether sending it again is what it wants.

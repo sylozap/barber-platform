@@ -3,7 +3,7 @@
 Not "by the first segment of the path", although that is how it started: the
 master lives in two services. The profile, the services offered and the
 activation belong to ``catalog``; the schedule and the settings of the same
-master belong to ``booking`` (``docs/03-services.md``, "Где живёт мастер"). So
+master belong to ``booking``. So
 the table holds path templates, and it is read top to bottom: the first rule
 that matches wins, which is why the two ``booking`` rules under ``/masters``
 stand above the ``catalog`` rule for ``/masters`` itself.

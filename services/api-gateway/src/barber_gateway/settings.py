@@ -37,8 +37,7 @@ class GatewaySettings(BaseAppSettings):
     proxy_pool_timeout_seconds: float = 1.0
 
     # --- rate limiting -----------------------------------------------------
-    # docs/04-api-contracts.md, "Rate limiting". A strict limit is counted on
-    # top of the general one, not instead of it.
+    # A strict limit is counted on top of the general one, not instead of it.
     rate_limit_anonymous_per_minute: int = 30
     rate_limit_user_per_minute: int = 120
     rate_limit_booking_create_per_minute: int = 5

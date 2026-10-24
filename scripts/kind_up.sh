@@ -14,7 +14,7 @@
 # run on a live cluster brings it to the same state and breaks nothing. A
 # rebuilt image is rolled out, an unchanged one is not.
 #
-# Needs docker, kind, kubectl, helm and uv; versions in docs/10-infrastructure.md.
+# Needs docker, kind, kubectl, helm and uv (versions in README.md).
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

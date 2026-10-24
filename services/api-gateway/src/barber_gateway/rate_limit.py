@@ -9,8 +9,7 @@ that still falls inside the sliding window, and adds the current one::
 Two integers per caller rather than a log of every request, and no reset at the
 boundary of a minute: thirty requests at 12:00:59 still count at 12:01:00. The
 price is an estimate that assumes the previous window's requests were spread
-evenly, which is the usual trade (it is what docs/04 names, "sliding window
-counter"). Reading both counters and adding to the current one is one Lua
+evenly, which is the usual trade. Reading both counters and adding to the current one is one Lua
 script, so two gateway replicas cannot both let the last request through.
 
 The clock is the gateway's, passed to the script, rather than Redis's ``TIME``:
@@ -240,9 +239,8 @@ class RateLimitPolicy:
         if method == "POST" and path == "/api/v1/bookings":
             limits.append((self.booking_create, caller))
         if method == "POST" and path == "/api/v1/auth/register":
-            # By address: whoever registers has no account yet. The only
-            # endpoint that sends a confirmation letter, so this is the limit
-            # docs/04 calls "sending a confirmation letter".
+            # By address: whoever registers has no account yet. This is the
+            # only endpoint that sends a confirmation letter.
             limits.append((self.registration, client_ip))
         return limits
 

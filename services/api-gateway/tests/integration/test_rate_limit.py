@@ -22,7 +22,7 @@ pytestmark = pytest.mark.integration
 
 BearerFactory = Callable[..., dict[str, str]]
 
-# Settings of the suite are the defaults of docs/04.
+# Settings of the suite are the defaults of GatewaySettings.
 ANONYMOUS_PER_MINUTE = 30
 USER_PER_MINUTE = 120
 BOOKINGS_PER_MINUTE = 5

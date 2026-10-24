@@ -3,7 +3,7 @@
 {{- if not .Values.secret.enabled }}
 {{- fail (printf "%s: migrations need DATABASE_DSN from the Secret, and secret.enabled is false" $name) }}
 {{- end }}
-# ADR-0015: the schema is migrated exactly once per release, by this Job,
+# The schema is migrated exactly once per release, by this Job,
 # before the Deployment changes. Not an init container: three replicas would
 # run three "alembic upgrade" at once.
 #

@@ -78,8 +78,8 @@ resources: {}
 # run inside the application process, there is no separate Deployment for them.
 consumes: []
 
-# The migration Job, run by a Helm hook before the Deployment is updated
-# (ADR-0015). Same image; the command is "alembic upgrade head". A failed
+# The migration Job, run by a Helm hook before the Deployment is updated.
+# Same image; the command is "alembic upgrade head". A failed
 # migration fails the upgrade before a single pod is replaced, and the pods of
 # the previous release keep serving.
 migrations:

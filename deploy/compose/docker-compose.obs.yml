@@ -7,7 +7,7 @@
 #   make obs-down   # this file goes, the services stay
 #
 # It is a separate file because it does not fit next to everything else on a
-# machine with 8 GB of memory (docs/13-risks.md); "make up" runs without it.
+# machine with 8 GB of memory; "make up" runs without it.
 # Every container has a memory ceiling for the same reason.
 #
 # Besides its own containers, the file turns tracing on in the five services:

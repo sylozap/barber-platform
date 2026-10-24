@@ -296,7 +296,7 @@ VALUES = ROOT / "deploy/helm/values"
 COMMON = VALUES / "common.yaml"
 LOCAL = VALUES / "local.yaml"
 SERVICES = ("api-gateway", "auth", "catalog", "booking", "notification")
-# The services whose load follows the traffic (docs/10-infrastructure.md).
+# The services whose load follows the traffic.
 AUTOSCALED = ("api-gateway", "booking", "catalog")
 TAG = "0123abc"
 

@@ -1,7 +1,7 @@
 """The card of a master: catalog and booking, asked at once, in one answer.
 
-The one aggregating endpoint of the gateway (ADR-0009), and it stays the only
-one: a second needs an ADR of its own.
+The one aggregating endpoint of the gateway, and it is meant to stay the only
+one.
 
 Both services are asked at the same time, so the card costs the slower of the
 two calls, not their sum. They do not weigh the same, though:

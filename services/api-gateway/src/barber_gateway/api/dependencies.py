@@ -58,8 +58,8 @@ async def _count(request: Request, identity: Identity) -> None:
         decision = await limiter.hit(limit, subject)
         if decision.allowed:
             continue
-        # INFO, as docs/11 asks: a refused burst is the limiter working, not
-        # an incident. The subject is not logged -- it is an address or a user.
+        # INFO, not WARNING: a refused burst is the limiter working, not an
+        # incident. The subject is not logged, it is an address or a user.
         _logger.info("rate limit exceeded", scope=limit.scope)
         raise RateLimited(
             "Too many requests, try again later",

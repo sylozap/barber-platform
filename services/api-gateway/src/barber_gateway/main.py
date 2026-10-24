@@ -107,7 +107,7 @@ def build_proxy(settings: GatewaySettings) -> Proxy:
 
 
 def rate_limit_policy(settings: GatewaySettings) -> RateLimitPolicy:
-    """The limits of docs/04, with the numbers of the settings."""
+    """Builds the rate limit policy from the settings."""
     return RateLimitPolicy(
         anonymous=Limit(LimitScope.ANONYMOUS, settings.rate_limit_anonymous_per_minute, 60),
         user=Limit(LimitScope.USER, settings.rate_limit_user_per_minute, 60),

@@ -1,6 +1,6 @@
 """Who is calling, as far as the gateway can vouch for it.
 
-The gateway is the first line, not the only one (ADR-0010): every service
+The gateway is the first line, not the only one: every service
 verifies the token again itself, and ``Authorization`` reaches it untouched.
 What the gateway adds is a refusal before the request costs a service anything,
 and the identity headers ``X-User-Id`` and ``X-Roles`` written from the token it
@@ -55,8 +55,7 @@ def _public(methods: frozenset[str], template: str, *, exact: bool = True) -> Pu
 
 _POST = frozenset({"POST"})
 
-# Everything else needs a token. Each entry is a decision recorded in
-# docs/04-api-contracts.md; the contract test checks the list against the
+# Everything else needs a token. The contract test checks the list against the
 # endpoints that declare no security in the OpenAPI of their service.
 PUBLIC_ENDPOINTS: tuple[PublicEndpoint, ...] = (
     # Becoming a user, and the session. Logout spends a refresh token from the
