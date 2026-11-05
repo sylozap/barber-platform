@@ -1,0 +1,112 @@
+[project]
+name = "barber-platform"
+version = "0.1.0"
+description = "Online booking platform for barbershops: monorepo root"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "ruff==0.16.5",
+    "mypy==2.3.1",
+    "pytest==9.1.1",
+    "pytest-asyncio==1.4.0",
+    "pytest-cov==7.1.0",
+    "testcontainers[postgres,redis]==4.15.0",
+    "httpx==0.28.1",
+    "pre-commit==4.6.2",
+    "openapi-spec-validator==0.9.0",
+    "pyyaml==6.0.3",
+    "types-pyyaml==6.0.12.20260906",
+    "schemathesis==4.31.1",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["libs/*", "services/*"]
+
+# ---------------------------------------------------------------------------
+# ruff
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["libs/common/src", "services"]
+extend-exclude = ["**/migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "S", "ASYNC", "DTZ"]
+# ANN401 is the check behind "Any is forbidden": mypy cannot enforce it, because
+# the pydantic plugin synthesises __init__ signatures that mention Any.
+extend-select = ["ANN401"]
+# N818 wants every exception to end in "Error". Domain errors are named after the
+# fact they report, such as SlotAlreadyTaken or CancelDeadlinePassed.
+ignore = ["N818"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests assert, use throwaway credentials and bind to localhost by design.
+"**/tests/**" = ["S101", "S105", "S106", "S107", "S311"]
+# Alembic environment files follow the upstream template.
+"**/migrations/**" = ["I001"]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "barber_common",
+    "barber_auth",
+    "barber_booking",
+    "barber_catalog",
+    "barber_gateway",
+    "barber_notification",
+]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+# ---------------------------------------------------------------------------
+# mypy
+# ---------------------------------------------------------------------------
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+# scripts: the tests import scripts/seed.py as the module "seed".
+mypy_path = ["libs/common/src", "scripts"]
+# mypy maps a file to a module by its name, and this layout has the same name
+# more than once: every service has a migrations/env.py and a tests/test_smoke.py.
+# The migrations are excluded outright; the tests of the services are checked
+# one service at a time -- see the "type" target of the Makefile.
+exclude = ["(^|/)migrations/", "^services/[^/]+/tests/"]
+
+[[tool.mypy.overrides]]
+module = ["*.migrations.*", "*.tests.*", "tests.*", "conftest"]
+disallow_untyped_defs = false
+disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+# None of them ships a py.typed marker.
+module = ["testcontainers.*", "docker.*", "aiokafka.*", "asyncpg.*"]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+
+[tool.pytest.ini_options]
+# importlib: five services have a tests/test_smoke.py, and the legacy import
+# mode derives the module name from the file name, so they collide.
+addopts = "--strict-markers --strict-config --import-mode=importlib"
+testpaths = ["libs", "services", "tests"]
+# The seed is a script, not a package; its tests import it from here.
+pythonpath = ["scripts"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "integration: needs a running Docker daemon (testcontainers)",
+    "fuzz: schemathesis against the whole platform; minutes, a CI job of its own",
+]

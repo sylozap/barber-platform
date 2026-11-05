@@ -1,0 +1,81 @@
+"""Event payload schemas shared by producers and consumers."""
+
+from barber_common.events.bookings import (
+    BOOKING_AGGREGATE_TYPE,
+    BOOKINGS_TOPIC,
+    REMINDERS_TOPIC,
+    BookingCreated,
+    BookingEventType,
+)
+from barber_common.events.catalog import (
+    CATALOG_MASTERS_TOPIC,
+    CATALOG_SERVICES_TOPIC,
+    MASTER_AGGREGATE_TYPE,
+    SERVICE_AGGREGATE_TYPE,
+    MasterCreated,
+    MasterDeactivated,
+    MasterEventType,
+    MasterUpdated,
+    ServiceArchived,
+    ServiceCreated,
+    ServiceEventType,
+    ServiceUpdated,
+)
+from barber_common.events.envelope import (
+    ENVELOPE_VERSION,
+    EventEnvelope,
+    JsonEnvelope,
+    build_envelope,
+)
+from barber_common.events.notifications import (
+    NOTIFICATION_AGGREGATE_TYPE,
+    DeliveryFailureReason,
+    NotificationDeliveryFailed,
+    NotificationEventType,
+)
+from barber_common.events.users import (
+    AUTH_USERS_TOPIC,
+    USER_AGGREGATE_TYPE,
+    UserContactsUpdated,
+    UserDeactivated,
+    UserEmailConfirmationRequested,
+    UserEmailConfirmed,
+    UserEventType,
+    UserRegistered,
+)
+
+__all__ = [
+    "AUTH_USERS_TOPIC",
+    "BOOKINGS_TOPIC",
+    "BOOKING_AGGREGATE_TYPE",
+    "CATALOG_MASTERS_TOPIC",
+    "CATALOG_SERVICES_TOPIC",
+    "ENVELOPE_VERSION",
+    "MASTER_AGGREGATE_TYPE",
+    "NOTIFICATION_AGGREGATE_TYPE",
+    "REMINDERS_TOPIC",
+    "SERVICE_AGGREGATE_TYPE",
+    "USER_AGGREGATE_TYPE",
+    "BookingCreated",
+    "BookingEventType",
+    "DeliveryFailureReason",
+    "EventEnvelope",
+    "JsonEnvelope",
+    "MasterCreated",
+    "MasterDeactivated",
+    "MasterEventType",
+    "MasterUpdated",
+    "NotificationDeliveryFailed",
+    "NotificationEventType",
+    "ServiceArchived",
+    "ServiceCreated",
+    "ServiceEventType",
+    "ServiceUpdated",
+    "UserContactsUpdated",
+    "UserDeactivated",
+    "UserEmailConfirmationRequested",
+    "UserEmailConfirmed",
+    "UserEventType",
+    "UserRegistered",
+    "build_envelope",
+]

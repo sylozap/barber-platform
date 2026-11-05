@@ -1,0 +1,37 @@
+# catalog: salons, masters, services. Mostly reads, cached in Redis.
+
+image:
+  name: catalog
+
+port: 8002
+replicas: 2
+
+# Mostly served from the cache, but sized for the hour it is not: with Redis
+# down every availability query of booking asks catalog for the master and the
+# service, and one pod at its CPU limit answered in seconds and tripped the
+# breaker of booking -- errors to clients, which the cache must never be the
+# cause of.
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+
+env: {}
+
+secret:
+  enabled: true
+  keys:
+    - DATABASE_DSN
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 192Mi
+  limits:
+    cpu: 500m
+    memory: 384Mi
+
+consumes: []
+
+migrations:
+  enabled: true

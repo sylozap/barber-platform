@@ -1,0 +1,30 @@
+[project]
+name = "barber-auth"
+version = "0.1.0"
+description = "Barber Auth"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "barber-common",
+    "uvicorn[standard]==0.52.4",
+    # argon2id, the password hash of the platform. The reference implementation
+    # of the winner of the Password Hashing Competition; a hand written hash is
+    # one nobody can audit.
+    "argon2-cffi==25.1.0",
+    # What pydantic's EmailStr delegates to. Without it the annotation raises at
+    # import time instead of validating anything.
+    "email-validator==2.3.0",
+    # RS256 access tokens. The crypto extra pulls in cryptography, which also
+    # reads the private key PEM and computes the RFC 7638 thumbprint used as
+    # the kid.
+    "pyjwt[crypto]==2.13.0",
+]
+
+[tool.uv.sources]
+barber-common = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/barber_auth"]

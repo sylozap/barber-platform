@@ -1,0 +1,90 @@
+# Client flow through the gateway, for the VS Code REST Client extension.
+# Run the requests top to bottom against `make up && make seed`.
+# The confirmation token is in the notification log:
+#   docker compose -f deploy/compose/docker-compose.yml logs notification | grep email_confirmation
+
+@api = http://localhost:8000/api/v1
+@email = me-1@example.com
+@phone = +79001234567
+@password = correct-horse-battery-7
+
+### Register
+POST {{api}}/auth/register
+Content-Type: application/json
+
+{"email": "{{email}}", "phone": "{{phone}}", "password": "{{password}}"}
+
+### Confirm the email (token from the notification log)
+@confirm_token = paste-token-here
+POST {{api}}/auth/confirm-email
+Content-Type: application/json
+
+{"token": "{{confirm_token}}"}
+
+### Log in
+# @name login
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{"email": "{{email}}", "password": "{{password}}"}
+
+###
+@token = {{login.response.body.$.access_token}}
+@refresh_token = {{login.response.body.$.refresh_token}}
+
+### Salons
+# @name salons
+GET {{api}}/salons
+
+### Masters of the first salon
+# @name masters
+GET {{api}}/salons/{{salons.response.body.$.items[0].id}}/masters
+
+### Master card: profile, services and the nearest free slots
+# @name card
+GET {{api}}/masters/{{masters.response.body.$.items[0].id}}/card
+
+###
+@master_id = {{masters.response.body.$.items[0].id}}
+@service_id = {{card.response.body.$.master.services[0].service_id}}
+
+### Free slots for a week ahead (adjust the dates)
+# @name availability
+GET {{api}}/availability?master_id={{master_id}}&service_id={{service_id}}&date_from=2026-11-02&date_to=2026-11-08
+Authorization: Bearer {{token}}
+
+### Book the first free slot
+# @name booking
+POST {{api}}/bookings
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{"master_id": "{{master_id}}", "service_id": "{{service_id}}", "start_at": "{{availability.response.body.$.days[0].slots[0]}}"}
+
+### My bookings
+GET {{api}}/bookings
+Authorization: Bearer {{token}}
+
+### Move the booking to the second free slot
+POST {{api}}/bookings/{{booking.response.body.$.id}}/reschedule
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"start_at": "{{availability.response.body.$.days[0].slots[1]}}"}
+
+### Cancel the booking
+POST {{api}}/bookings/{{booking.response.body.$.id}}/cancel
+Authorization: Bearer {{token}}
+
+### Refresh the token pair
+POST {{api}}/auth/refresh
+Content-Type: application/json
+
+{"refresh_token": "{{refresh_token}}"}
+
+### Log out
+POST {{api}}/auth/logout
+Content-Type: application/json
+
+{"refresh_token": "{{refresh_token}}"}
